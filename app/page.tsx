@@ -1,5 +1,4 @@
 import WordleGameWithAuth from "@/components/wordle-game-with-auth"
-import { AdminLink } from "@/components/admin-link"
 import { initializeDatabase } from "@/lib/db"
 
 export default async function CWRUWordle() {
@@ -8,7 +7,6 @@ export default async function CWRUWordle() {
   
   return (
     <>
-      <AdminLink />
       <WordleGameWithAuth title="CWRU WORDLE" subtitle="Guess the CWRU word in 6 tries!" />
     </>
   )
