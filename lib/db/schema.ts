@@ -3,10 +3,12 @@ import { text, integer, sqliteTable, blob } from "drizzle-orm/sqlite-core";
 
 export const users = sqliteTable("users", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  username: text("username").unique().notNull(),
+  username: text("username").notNull().unique(),
   fullName: text("full_name"),
   email: text("email").unique(),
-  createdAt: text("created_at").default(sql`(datetime('now'))`),
+  password: text("password"),
+  phoneNumber: text("phone_number"),
+  createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
 });
 
 export const games = sqliteTable("games", {
@@ -28,6 +30,17 @@ export const gameplays = sqliteTable("gameplays", {
   createdAt: text("created_at").default(sql`(datetime('now'))`),
 });
 
+export const gameStats = sqliteTable("game_stats", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id").notNull().references(() => users.id),
+  gamesPlayed: integer("games_played").default(0),
+  gamesWon: integer("games_won").default(0),
+  currentStreak: integer("current_streak").default(0),
+  maxStreak: integer("max_streak").default(0),
+  guessDistribution: text("guess_distribution").default("{}"),
+  lastPlayedAt: text("last_played_at").default("CURRENT_TIMESTAMP"),
+});
+
 // Types for TypeScript
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -35,3 +48,5 @@ export type Game = typeof games.$inferSelect;
 export type NewGame = typeof games.$inferInsert;
 export type Gameplay = typeof gameplays.$inferSelect;
 export type NewGameplay = typeof gameplays.$inferInsert;
+export type GameStats = typeof gameStats.$inferSelect;
+export type NewGameStats = typeof gameStats.$inferInsert;

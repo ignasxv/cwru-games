@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { InfoIcon, RotateCcw, Trophy, Share2 } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useToast } from "@/hooks/use-toast"
+import cwruWords from "@/data/cwru-words.json"
 
 type LetterState = "correct" | "present" | "absent" | "empty"
 
@@ -18,17 +19,14 @@ interface GameState {
 }
 
 interface WordleGameProps {
-  words: Array<{ word: string; hint: string }>
+  userId?: number
   title?: string
   subtitle?: string
 }
 
-export default function WordleGame({
-  words,
-  title = "WORDLE",
-  subtitle = "Guess the word in 6 tries!",
-}: WordleGameProps) {
+export default function WordleGame({ userId, title = "CWRU WORDLE", subtitle = "Guess the CWRU word in 6 tries!" }: WordleGameProps) {
   const { toast } = useToast()
+  const words = cwruWords.words
   const [gameState, setGameState] = useState<GameState>({
     currentGuess: "",
     guesses: [],

@@ -1,8 +1,9 @@
 "use server";
 
+import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
-import { users, games, gameplays, type NewUser, type NewGame, type NewGameplay } from "@/lib/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { users, games, gameplays, gameStats, type NewUser, type NewGame, type NewGameplay } from "@/lib/db/schema";
+import { eq, desc, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 // User actions
@@ -134,4 +135,87 @@ export async function getGameStats() {
       completedGameplays: 0,
     };
   }
+}
+
+// Authentication functions
+export async function registerUser(username: string, email: string, password: string, phoneNumber?: string) {
+  try {
+    // Check if username or email already exists
+    const existingUser = await db.select().from(users).where(
+      or(eq(users.username, username), eq(users.email, email))
+    ).limit(1);
+
+    if (existingUser.length > 0) {
+      return { success: false, message: "Username or email already exists" };
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    // Create user
+    const newUser = await db.insert(users).values({
+      username,
+      email,
+      password: hashedPassword,
+      phoneNumber
+    }).returning({
+      id: users.id,
+      username: users.username,
+      email: users.email,
+      phoneNumber: users.phoneNumber
+    });
+
+    // Initialize game stats for the new user
+    await db.insert(gameStats).values({
+      userId: newUser[0].id,
+      gamesPlayed: 0,
+      gamesWon: 0,
+      currentStreak: 0,
+      maxStreak: 0,
+      guessDistribution: "{}"
+    });
+
+    return { success: true, user: newUser[0] };
+  } catch (error) {
+    console.error("Registration error:", error);
+    return { success: false, message: "Registration failed" };
+  }
+}
+
+export async function loginUser(usernameOrEmail: string, password: string) {
+  try {
+    // Find user by username or email
+    const user = await db.select().from(users).where(
+      or(eq(users.username, usernameOrEmail), eq(users.email, usernameOrEmail))
+    ).limit(1);
+
+    if (user.length === 0) {
+      return { success: false, message: "User not found" };
+    }
+
+    // Verify password
+    const isValidPassword = await bcrypt.compare(password, user[0].password);
+    if (!isValidPassword) {
+      return { success: false, message: "Invalid password" };
+    }
+
+    return {
+      success: true,
+      user: {
+        id: user[0].id,
+        username: user[0].username,
+        email: user[0].email,
+        phoneNumber: user[0].phoneNumber
+      }
+    };
+  } catch (error) {
+    console.error("Login error:", error);
+    return { success: false, message: "Login failed" };
+  }
+}
+
+export async function getCurrentUser() {
+  // Since we're using client-side state management instead of server sessions,
+  // this function returns null. In a real app, you'd implement proper session management.
+  return null;
 }
