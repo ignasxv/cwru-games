@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { InfoIcon, User, LogIn, LogOut } from "lucide-react"
+import { InfoIcon, User, LogIn, LogOut, ChevronLeft, ChevronRight } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useToast } from "@/hooks/use-toast"
 import { 
@@ -29,6 +29,22 @@ function LoginForm({ onLogin }: LoginFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isNewUser, setIsNewUser] = useState(false)
 
+  // Focus management
+  useEffect(() => {
+    // Focus the username input when component mounts or when switching back to login
+    const usernameInput = document.getElementById("username")
+    if (usernameInput) {
+      usernameInput.focus()
+    }
+  }, [isNewUser])
+
+  const handleBackToLogin = () => {
+    setIsNewUser(false)
+    // Clear the additional form fields when going back
+    setFullName("")
+    setEmail("")
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!username.trim()) return
@@ -49,6 +65,13 @@ function LoginForm({ onLogin }: LoginFormProps) {
         if (!isNewUser) {
           setIsNewUser(true)
           setIsSubmitting(false)
+          // Focus the first additional field after state update
+          setTimeout(() => {
+            const fullNameInput = document.getElementById("fullName")
+            if (fullNameInput) {
+              fullNameInput.focus()
+            }
+          }, 0)
           return
         }
 
@@ -85,7 +108,7 @@ function LoginForm({ onLogin }: LoginFormProps) {
 
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100 p-4 flex items-center justify-center">
-      <Card className="w-full max-w-md p-6 bg-gray-800 border-gray-700">
+      <Card className="w-full max-w-md p-6 bg-gray-800 border-gray-700" tabIndex={-1}>
         <div className="text-center mb-6">
           <h1 className="text-3xl font-bold text-green-400 mb-2 font-mono">WORDLE</h1>
           <p className="text-gray-300">{isNewUser ? "Create Account" : "Login to Play"}</p>
@@ -102,6 +125,8 @@ function LoginForm({ onLogin }: LoginFormProps) {
               placeholder="Enter your username"
               className="bg-gray-700 border-gray-600 text-gray-100"
               required
+              autoFocus
+              autoComplete="username"
             />
           </div>
 
@@ -116,6 +141,7 @@ function LoginForm({ onLogin }: LoginFormProps) {
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFullName(e.target.value)}
                   placeholder="Your full name"
                   className="bg-gray-700 border-gray-600 text-gray-100"
+                  autoComplete="name"
                 />
               </div>
               <div>
@@ -127,6 +153,7 @@ function LoginForm({ onLogin }: LoginFormProps) {
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
                   placeholder="your.email@example.com"
                   className="bg-gray-700 border-gray-600 text-gray-100"
+                  autoComplete="email"
                 />
               </div>
             </>
@@ -145,7 +172,7 @@ function LoginForm({ onLogin }: LoginFormProps) {
             <Button
               type="button"
               variant="ghost"
-              onClick={() => setIsNewUser(false)}
+              onClick={handleBackToLogin}
               className="w-full text-gray-300 hover:text-gray-100"
             >
               Back to Login
@@ -170,6 +197,7 @@ export default function WordleGameWithAuth({
   const [user, setUser] = useState<UserType | null>(null)
   const [games, setGames] = useState<Game[]>([])
   const [currentGame, setCurrentGame] = useState<Game | null>(null)
+  const [currentGameIndex, setCurrentGameIndex] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
 
   // Game state
@@ -194,8 +222,8 @@ export default function WordleGameWithAuth({
       const activeGames = await getActiveGames()
       setGames(activeGames)
       if (activeGames.length > 0 && !currentGame) {
-        const randomGame = activeGames[Math.floor(Math.random() * activeGames.length)]
-        setCurrentGame(randomGame)
+        setCurrentGame(activeGames[0]) // Start with first game
+        setCurrentGameIndex(0)
       }
     } catch (error) {
       console.error("Error loading games:", error)
@@ -210,17 +238,6 @@ export default function WordleGameWithAuth({
   }
 
   const startNewGame = () => {
-    if (games.length === 0) {
-      toast({
-        title: "No games available",
-        description: "Please contact admin to add games",
-        variant: "destructive",
-      })
-      return
-    }
-
-    const randomGame = games[Math.floor(Math.random() * games.length)]
-    setCurrentGame(randomGame)
     setGameState({
       currentGuess: "",
       guesses: [],
@@ -230,6 +247,44 @@ export default function WordleGameWithAuth({
     setLetterStates({})
     setShowHint(false)
     setAnimatingRow(null)
+  }
+
+  const goToNextGame = () => {
+    if (currentGameIndex < games.length - 1) {
+      const nextIndex = currentGameIndex + 1
+      setCurrentGameIndex(nextIndex)
+      setCurrentGame(games[nextIndex])
+      startNewGame()
+      toast({
+        title: "Next Level!",
+        description: `Level ${nextIndex + 1}: ${games[nextIndex].word.length} letter word`,
+      })
+    }
+  }
+
+  const goToPreviousGame = () => {
+    if (currentGameIndex > 0) {
+      const prevIndex = currentGameIndex - 1
+      setCurrentGameIndex(prevIndex)
+      setCurrentGame(games[prevIndex])
+      startNewGame()
+      toast({
+        title: "Previous Level",
+        description: `Level ${prevIndex + 1}: ${games[prevIndex].word.length} letter word`,
+      })
+    }
+  }
+
+  const goToLevel = (index: number) => {
+    if (index >= 0 && index < games.length) {
+      setCurrentGameIndex(index)
+      setCurrentGame(games[index])
+      startNewGame()
+      toast({
+        title: `Level ${index + 1}`,
+        description: `${games[index].word.length} letter word`,
+      })
+    }
   }
 
   const saveGameplay = async (completed: boolean, numTries: number, pointsEarned: number) => {
@@ -306,10 +361,19 @@ export default function WordleGameWithAuth({
       
       await saveGameplay(true, numTries, pointsEarned)
       
-      toast({
-        title: "🎉 Congratulations!",
-        description: `You guessed "${currentGame.word}" in ${numTries} tries! (+${pointsEarned} points)`,
-      })
+      setTimeout(() => {
+        if (currentGameIndex < games.length - 1) {
+          toast({
+            title: "🎉 Congratulations!",
+            description: `You guessed "${currentGame.word}" in ${numTries} tries! (+${pointsEarned} points). Ready for the next level?`,
+          })
+        } else {
+          toast({
+            title: "🎉 Congratulations!",
+            description: `You guessed "${currentGame.word}" in ${numTries} tries! (+${pointsEarned} points). You've completed all levels!`,
+          })
+        }
+      }, 1000)
     } else if (newGuesses.length >= 6) {
       setGameState({
         ...gameState,
@@ -353,9 +417,18 @@ export default function WordleGameWithAuth({
     }
   }
 
-  // Keyboard event listener
+  // Keyboard event listener - only active when user is logged in and game is active
   useEffect(() => {
+    // Don't add keyboard listeners if user is not authenticated or no current game
+    if (!user || !currentGame) return
+
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't interfere with form inputs
+      const target = e.target as HTMLElement
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') {
+        return
+      }
+
       if (!e.key) return
       const key = e.key.toUpperCase()
       if (key === "ENTER" || key === "BACKSPACE" || key.match(/[A-Z]/)) {
@@ -366,11 +439,12 @@ export default function WordleGameWithAuth({
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [gameState, currentGame])
+  }, [gameState, currentGame, user])
 
   const logout = () => {
     setUser(null)
     setCurrentGame(null)
+    setCurrentGameIndex(0)
     setGameState({
       currentGuess: "",
       guesses: [],
@@ -526,7 +600,7 @@ export default function WordleGameWithAuth({
           <p className="text-gray-300 font-mono">{subtitle}</p>
 
           {/* Controls */}
-          <div className="flex justify-center gap-2 mt-4">
+          <div className="flex justify-center gap-2 mt-4 mb-4">
             <Popover open={showHint} onOpenChange={setShowHint}>
               <PopoverTrigger asChild>
                 <Button
@@ -552,8 +626,15 @@ export default function WordleGameWithAuth({
               onClick={startNewGame}
               className="bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700 font-mono"
             >
-              New Game
+              Reset
             </Button>
+          </div>
+
+          {/* Level Info */}
+          <div className="text-center mb-2">
+            <Badge variant="outline" className="bg-blue-800 border-blue-600 text-blue-200 font-mono text-lg px-3 py-1">
+              Level {currentGameIndex + 1} of {games.length}
+            </Badge>
           </div>
         </div>
 
@@ -565,7 +646,7 @@ export default function WordleGameWithAuth({
 
         {/* Game Stats */}
         <div className="mt-8 text-center">
-          <div className="flex justify-center gap-4">
+          <div className="flex justify-center gap-4 mb-6">
             <Badge variant="outline" className="bg-gray-800 border-gray-600 text-gray-200 font-mono">
               Guess {gameState.currentRow + 1}/6
             </Badge>
@@ -573,6 +654,53 @@ export default function WordleGameWithAuth({
               Word: {currentGame.word.length} letters
             </Badge>
           </div>
+
+          {/* Level Navigation */}
+          <div className="flex items-center justify-center gap-4 mb-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={goToPreviousGame}
+              disabled={currentGameIndex === 0}
+              className="bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700 font-mono disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ChevronLeft className="w-4 h-4 mr-1" />
+              Previous
+            </Button>
+            
+            <div className="text-sm text-gray-400 font-mono min-w-[120px]">
+              Level {currentGameIndex + 1} of {games.length}
+            </div>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={goToNextGame}
+              disabled={currentGameIndex === games.length - 1}
+              className="bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700 font-mono disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+              <ChevronRight className="w-4 h-4 ml-1" />
+            </Button>
+          </div>
+
+          {/* Level Dots Indicator */}
+          {games.length > 1 && (
+            <div className="flex justify-center gap-1 flex-wrap">
+              {games.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => goToLevel(index)}
+                  className={`w-2 h-2 rounded-full transition-all duration-200 ${
+                    index === currentGameIndex 
+                      ? 'bg-green-400' 
+                      : 'bg-gray-600 hover:bg-gray-500'
+                  }`}
+                  title={`Go to Level ${index + 1}`}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
