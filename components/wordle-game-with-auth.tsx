@@ -356,6 +356,7 @@ export default function WordleGameWithAuth({
   // Keyboard event listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (!e.key) return
       const key = e.key.toUpperCase()
       if (key === "ENTER" || key === "BACKSPACE" || key.match(/[A-Z]/)) {
         e.preventDefault()
