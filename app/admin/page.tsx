@@ -11,14 +11,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/dialog";
-import { Plus, Users, GamepadIcon, BarChart3, ToggleLeft, ToggleRight, Calendar } from "lucide-react";
+import { Plus, Users, GamepadIcon, BarChart3, ToggleLeft, ToggleRight, Calendar, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { 
   createGame, 
   getAllGames, 
   getAllUsers, 
   toggleGameActive, 
-  getGameStats 
+  getGameStats,
+  deleteGame
 } from "@/lib/actions/game-actions";
 import type { Game, User } from "@/lib/db/schema";
 
@@ -46,7 +47,6 @@ export default function AdminPage() {
   const [newGame, setNewGame] = useState({
     word: "",
     hint: "",
-    level: 1,
   });
 
   useEffect(() => {
@@ -111,12 +111,11 @@ export default function AdminPage() {
       const result = await createGame({
         word: newGame.word.toUpperCase(),
         hint: newGame.hint.trim() || undefined,
-        level: newGame.level,
         active: true,
       });
 
       if (result.success) {
-        setNewGame({ word: "", hint: "", level: 1 });
+        setNewGame({ word: "", hint: "" });
         loadData(); // Reload data
         toast({
           title: "Success",
@@ -160,6 +159,33 @@ export default function AdminPage() {
       toast({
         title: "Error",
         description: "Failed to update game",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteGame = async (gameId: number, word: string) => {
+    try {
+      const result = await deleteGame(gameId);
+      
+      if (result.success) {
+        await loadData();
+        toast({
+          title: "Success",
+          description: `Game "${word}" deleted successfully`,
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to delete game",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error deleting game:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete game",
         variant: "destructive",
       });
     }
@@ -272,7 +298,7 @@ export default function AdminPage() {
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleCreateGame} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="word" className="text-gray-200">Word *</Label>
                       <Input
@@ -283,19 +309,6 @@ export default function AdminPage() {
                         placeholder="EXAMPLE"
                         className="bg-gray-700 border-gray-600 text-gray-100 font-mono"
                         maxLength={7}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="level" className="text-gray-200">Level *</Label>
-                      <Input
-                        id="level"
-                        type="number"
-                        value={newGame.level}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewGame({ ...newGame, level: parseInt(e.target.value) || 1 })}
-                        placeholder="1"
-                        className="bg-gray-700 border-gray-600 text-gray-100"
-                        min={1}
                         required
                       />
                     </div>
@@ -346,10 +359,12 @@ export default function AdminPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {games.map((game) => (
+                      {games
+                        .sort((a, b) => new Date(a.createdAt || '').getTime() - new Date(b.createdAt || '').getTime())
+                        .map((game, index) => (
                         <TableRow key={game.id} className="border-gray-700">
                           <TableCell className="font-mono font-semibold text-blue-400">
-                            {game.level}
+                            {index + 1}
                           </TableCell>
                           <TableCell className="font-mono font-semibold text-green-400">
                             {game.word}
@@ -369,18 +384,57 @@ export default function AdminPage() {
                             {game.createdAt && formatDate(game.createdAt)}
                           </TableCell>
                           <TableCell>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleToggleGameActive(game.id)}
-                              className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                            >
-                              {game.active ? (
-                                <ToggleRight className="h-4 w-4" />
-                              ) : (
-                                <ToggleLeft className="h-4 w-4" />
-                              )}
-                            </Button>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleToggleGameActive(game.id)}
+                                className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                              >
+                                {game.active ? (
+                                  <ToggleRight className="h-4 w-4" />
+                                ) : (
+                                  <ToggleLeft className="h-4 w-4" />
+                                )}
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    className="border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle className="text-red-600">
+                                      Delete Game
+                                    </AlertDialogTitle>
+                                    <AlertDialogDescription className="text-gray-300">
+                                      Are you sure you want to delete the game "{game.word}"? This action cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel asChild>
+                                      <Button className="text-gray-400 hover:bg-gray-700">
+                                        Cancel
+                                      </Button>
+                                    </AlertDialogCancel>
+                                    <AlertDialogAction asChild>
+                                      <Button
+                                        variant="destructive"
+                                        onClick={() => handleDeleteGame(game.id, game.word)}
+                                        className="bg-red-600 hover:bg-red-700"
+                                      >
+                                        Delete
+                                      </Button>
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}

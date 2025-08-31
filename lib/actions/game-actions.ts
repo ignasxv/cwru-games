@@ -3,7 +3,7 @@
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { users, games, gameplays, gameStats, type NewUser, type NewGame, type NewGameplay } from "@/lib/db/schema";
-import { eq, desc, or, and, asc, max } from "drizzle-orm";
+import { eq, desc, or, and, asc, max, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { signJWT, verifyJWT, getCurrentUserFromToken } from "@/lib/auth/jwt";
 
@@ -54,15 +54,38 @@ export async function createGame(gameData: Omit<NewGame, "id" | "createdAt">) {
       return { success: false, error: "Word can only contain letters" };
     }
     
+    // Check if word already exists
+    const existingGame = await db.select().from(games).where(eq(games.word, gameData.word.toUpperCase())).limit(1);
+    if (existingGame.length > 0) {
+      return { success: false, error: "Word already exists in the database" };
+    }
+    
     const [game] = await db.insert(games).values({
-      ...gameData,
-      word: gameData.word.toUpperCase()
+      word: gameData.word.toUpperCase(),
+      hint: gameData.hint,
+      active: gameData.active ?? true
     }).returning();
     revalidatePath("/admin");
     return { success: true, game };
   } catch (error) {
     console.error("Error creating game:", error);
     return { success: false, error: "Failed to create game" };
+  }
+}
+
+export async function deleteGame(gameId: number) {
+  try {
+    // First, delete all associated gameplays
+    await db.delete(gameplays).where(eq(gameplays.gameId, gameId));
+    
+    // Then delete the game
+    await db.delete(games).where(eq(games.id, gameId));
+    
+    revalidatePath("/admin");
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting game:", error);
+    return { success: false, error: "Failed to delete game" };
   }
 }
 
@@ -361,15 +384,31 @@ export async function getRandomUnplayedGame(userId: number) {
 // Get user's current level (highest completed level + 1, or 1 if none completed)
 export async function getUserCurrentLevel(userId: number) {
   try {
-    const result = await db
-      .select({ maxLevel: max(games.level) })
-      .from(gameplays)
-      .leftJoin(games, eq(gameplays.gameId, games.id))
-      .where(and(eq(gameplays.userId, userId), eq(gameplays.completed, true)))
-      .limit(1);
+    // Get all active games in order
+    const allGames = await db
+      .select({ id: games.id })
+      .from(games)
+      .where(eq(games.active, true))
+      .orderBy(asc(games.createdAt));
     
-    const maxCompletedLevel = result[0]?.maxLevel || 0;
-    return maxCompletedLevel + 1;
+    // Get user's completed gameplays
+    const completedGameplays = await db
+      .select({ gameId: gameplays.gameId })
+      .from(gameplays)
+      .where(and(eq(gameplays.userId, userId), eq(gameplays.completed, true)));
+    
+    const completedGameIds = new Set(completedGameplays.map(gp => gp.gameId));
+    
+    // Find the highest completed level (1-indexed)
+    let maxCompletedLevel = 0;
+    allGames.forEach((game, index) => {
+      if (completedGameIds.has(game.id)) {
+        maxCompletedLevel = Math.max(maxCompletedLevel, index + 1);
+      }
+    });
+    
+    // User's current level is the next level after their highest completed level
+    return Math.min(maxCompletedLevel + 1, allGames.length);
   } catch (error) {
     console.error("Error getting user current level:", error);
     return 1;
@@ -382,81 +421,94 @@ export async function getGameForUser(userId: number, requestedLevel?: number) {
     const currentLevel = await getUserCurrentLevel(userId);
     const targetLevel = requestedLevel || currentLevel;
     
-    // First, try to get the game for the target level
-    let [game] = await db
+    // Get all active games ordered by creation date to determine dynamic levels
+    const allGames = await db
       .select()
       .from(games)
-      .where(and(eq(games.level, targetLevel), eq(games.active, true)))
-      .limit(1);
+      .where(eq(games.active, true))
+      .orderBy(asc(games.createdAt));
     
+    // Find the game at the target level (1-indexed)
+    const game = allGames[targetLevel - 1];
     let actualLevel = targetLevel;
     
     // If no game found for target level, try user's current level
-    if (!game && targetLevel !== currentLevel) {
-      [game] = await db
-        .select()
-        .from(games)
-        .where(and(eq(games.level, currentLevel), eq(games.active, true)))
-        .limit(1);
-      actualLevel = currentLevel;
-    }
-    
-    // If still no game, get any available active game (fallback to level 1 or first available)
-    if (!game) {
-      [game] = await db
-        .select()
-        .from(games)
-        .where(eq(games.active, true))
-        .orderBy(asc(games.level))
-        .limit(1);
-      
-      if (game) {
-        actualLevel = game.level;
+    if (!game && targetLevel !== currentLevel && currentLevel <= allGames.length) {
+      const fallbackGame = allGames[currentLevel - 1];
+      if (fallbackGame) {
+        actualLevel = currentLevel;
+        return await getGameDetails(userId, fallbackGame, actualLevel, currentLevel);
       }
     }
     
-    if (!game) {
-      return { game: null, isReplay: false, currentLevel, actualLevel: targetLevel };
+    // If still no game, get the first available game
+    if (!game && allGames.length > 0) {
+      actualLevel = 1;
+      return await getGameDetails(userId, allGames[0], actualLevel, currentLevel);
     }
     
-    // Check if user has already played this game
-    const existingGameplay = await getUserGameplay(userId, game.id);
-    const isReplay = !!existingGameplay;
+    if (!game) {
+      return { game: null, isReplay: false, currentLevel, actualLevel: targetLevel, existingGameplay: null };
+    }
     
-    return { game, isReplay, currentLevel, actualLevel, existingGameplay };
+    return await getGameDetails(userId, game, actualLevel, currentLevel);
   } catch (error) {
     console.error("Error getting game for user:", error);
-    return { game: null, isReplay: false, currentLevel: 1, actualLevel: requestedLevel || 1 };
+    return { game: null, isReplay: false, currentLevel: 1, actualLevel: requestedLevel || 1, existingGameplay: null };
   }
 }
 
-// Get all available levels (for navigation)
+async function getGameDetails(userId: number, game: any, level: number, currentLevel: number) {
+  // Check if user has already played this game
+  const existingGameplay = await getUserGameplay(userId, game.id);
+  const isReplay = !!existingGameplay;
+  
+  return { game, isReplay, currentLevel, actualLevel: level, existingGameplay };
+}
+
+// Get all available levels (for navigation) - now based on number of active games
 export async function getAvailableLevels() {
   try {
-    const result = await db
-      .select({ level: games.level })
+    const gameCount = await db
+      .select({ count: sql<number>`count(*)` })
       .from(games)
-      .where(eq(games.active, true))
-      .orderBy(asc(games.level));
+      .where(eq(games.active, true));
     
-    return result.map(r => r.level);
+    const totalGames = gameCount[0]?.count || 0;
+    return Array.from({ length: totalGames }, (_, i) => i + 1);
   } catch (error) {
     console.error("Error getting available levels:", error);
     return [];
   }
 }
 
-// Get user's completed levels
+// Get user's completed levels - now based on dynamic level calculation
 export async function getUserCompletedLevels(userId: number) {
   try {
-    const result = await db
-      .select({ level: games.level })
-      .from(gameplays)
-      .leftJoin(games, eq(gameplays.gameId, games.id))
-      .where(and(eq(gameplays.userId, userId), eq(gameplays.completed, true)))
-      .orderBy(asc(games.level));
+    // Get all active games in order
+    const allGames = await db
+      .select({ id: games.id })
+      .from(games)
+      .where(eq(games.active, true))
+      .orderBy(asc(games.createdAt));
     
-    return result.map(r => r.level).filter((level): level is number => level !== null);
+    // Get user's completed gameplays
+    const completedGameplays = await db
+      .select({ gameId: gameplays.gameId })
+      .from(gameplays)
+      .where(and(eq(gameplays.userId, userId), eq(gameplays.completed, true)));
+    
+    const completedGameIds = new Set(completedGameplays.map(gp => gp.gameId));
+    const completedLevels: number[] = [];
+    
+    // Map game IDs to their dynamic levels
+    allGames.forEach((game, index) => {
+      if (completedGameIds.has(game.id)) {
+        completedLevels.push(index + 1); // 1-indexed levels
+      }
+    });
+    
+    return completedLevels.sort((a, b) => a - b);
   } catch (error) {
     console.error("Error getting user completed levels:", error);
     return [];

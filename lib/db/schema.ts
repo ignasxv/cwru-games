@@ -15,7 +15,6 @@ export const games = sqliteTable("games", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   word: text("word").notNull(),
   hint: text("hint"),
-  level: integer("level").notNull().default(1), // Added level/index field
   createdAt: text("created_at").default(sql`(datetime('now'))`),
   active: integer("active", { mode: "boolean" }).default(true),
 });
