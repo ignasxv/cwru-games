@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { InfoIcon, RotateCcw, Trophy, Share2, ChevronLeft, ChevronRight } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { getGameForUser, getUserCurrentLevel, getAvailableLevels, getUserCompletedLevels, saveGameplayProgress } from "@/lib/actions/game-actions"
+import GameStats from "@/components/game-stats"
 
 type LetterState = "correct" | "present" | "absent" | "empty"
 
@@ -40,6 +41,7 @@ export default function WordleGame({ userId }: WordleGameProps) {
   const [animatingRow, setAnimatingRow] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [isReplayMode, setIsReplayMode] = useState(false)
+  const [currentGamePoints, setCurrentGamePoints] = useState<number>(0)
 
   // Initialize game
   useEffect(() => {
@@ -103,6 +105,7 @@ export default function WordleGame({ userId }: WordleGameProps) {
         setShowHint(false)
         setAnimatingRow(null)
         setIsReplayMode(false)
+        setCurrentGamePoints(0)
       }
     } catch (error) {
       console.error("Error loading game for level:", error)
@@ -229,6 +232,13 @@ export default function WordleGame({ userId }: WordleGameProps) {
 
     const isCorrectGuess = gameState.currentGuess === targetWord
     const isGameComplete = isCorrectGuess || newGuesses.length >= 6
+
+    // Calculate points for this game
+    let pointsEarned = 0;
+    if (isCorrectGuess) {
+      pointsEarned = Math.max(100 - (newGuesses.length - 1) * 10, 10);
+      setCurrentGamePoints(pointsEarned);
+    }
 
     if (isCorrectGuess) {
       setGameState({
@@ -426,7 +436,7 @@ export default function WordleGame({ userId }: WordleGameProps) {
         {/* Loading State */}
         {loading && (
           <div className="text-center py-20">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-green-400 mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-yellow-400 mx-auto mb-4"></div>
             <p className="text-gray-300 font-mono">Loading game...</p>
           </div>
         )}
@@ -496,7 +506,7 @@ export default function WordleGame({ userId }: WordleGameProps) {
                     variant="outline"
                     size="sm"
                     onClick={startNewGame}
-                    className="bg-green-800 border-green-600 text-green-200 hover:bg-green-700 font-mono"
+                    className="bg-yellow-800 border-yellow-600 text-yellow-200 hover:bg-yellow-700 font-mono"
                   >
                     <RotateCcw className="w-4 h-4 mr-1" />
                     Current
@@ -520,10 +530,10 @@ export default function WordleGame({ userId }: WordleGameProps) {
 
         {/* Game Status */}
         {gameState.gameStatus === "won" && (
-          <Card className="p-3 mb-4 text-center bg-green-900/30 border-green-500">
+          <Card className="p-3 mb-4 text-center bg-yellow-900/30 border-yellow-500">
             <div className="flex items-center justify-center gap-2 mb-2">
-              <Trophy className="w-5 h-5 text-green-400" />
-              <span className="font-semibold text-green-400 font-mono">Congratulations!</span>
+              <Trophy className="w-5 h-5 text-yellow-400" />
+              <span className="font-semibold text-yellow-400 font-mono">Congratulations!</span>
             </div>
             <p className="text-sm text-gray-300 font-mono">
               You guessed "{targetWord}" in {gameState.guesses.length} tries!
@@ -558,6 +568,16 @@ export default function WordleGame({ userId }: WordleGameProps) {
             </Badge>
           </div>
         </div>
+
+        {/* Game Stats and Rankings */}
+        {userId && (
+          <GameStats 
+            userId={userId}
+            currentGameId={currentGameId}
+            gameStatus={gameState.gameStatus}
+            pointsEarned={currentGamePoints}
+          />
+        )}
         </>
         )}
 

@@ -6,10 +6,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Trophy } from "lucide-react"
 import WordleGame from "./wordle-game"
 import { loginUser, registerUser } from "@/lib/actions/game-actions"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/lib/auth/AuthContext"
+import Link from "next/link"
 
 export default function WordleGameWithAuth() {
   const { user, isLoading, login, logout } = useAuth()
@@ -97,7 +99,7 @@ export default function WordleGameWithAuth() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="font-mono min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900 mx-auto"></div>
           <p className="mt-4">Loading...</p>
@@ -108,104 +110,101 @@ export default function WordleGameWithAuth() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <Card className="w-full max-w-md">
+      <div className="font-mono min-h-screen bg-gradient-to-br from-gray-800  to-gray-900 flex items-center justify-center px-4">
+        <Card className="w-full max-w-md bg-gray-900/90 border-gray-800">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold">CWRU Wordle</CardTitle>
-            <CardDescription>Guess the CWRU word in 6 tries!</CardDescription>
+        <CardTitle className="text-2xl font-bold font-mono text-yellow-400">ΣN Games</CardTitle>
+        <CardDescription className="text-gray-300">Immerse yourself in CWRU with Sigma Nu games</CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="login" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="login">Login</TabsTrigger>
-                <TabsTrigger value="register">Register</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="login" className="space-y-4">
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="usernameOrEmail">Username or Email</Label>
-                    <Input
-                      id="usernameOrEmail"
-                      name="usernameOrEmail"
-                      type="text"
-                      placeholder="Enter username or email"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
-                    <Input
-                      id="password"
-                      name="password"
-                      type="password"
-                      placeholder="Enter password"
-                      required
-                    />
-                  </div>
-                  <Button type="submit" className="w-full">
-                    Login
-                  </Button>
-                </form>
-              </TabsContent>
-              
-              <TabsContent value="register" className="space-y-4">
-                <form onSubmit={handleRegister} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="username">Username</Label>
-                    <Input
-                      id="username"
-                      name="username"
-                      type="text"
-                      placeholder="Choose a username"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      placeholder="Enter your email"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phoneNumber">Phone Number</Label>
-                    <Input
-                      id="phoneNumber"
-                      name="phoneNumber"
-                      type="tel"
-                      placeholder="Enter phone number (optional)"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="registerPassword">Password</Label>
-                    <Input
-                      id="registerPassword"
-                      name="password"
-                      type="password"
-                      placeholder="Create a password"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">Confirm Password</Label>
-                    <Input
-                      id="confirmPassword"
-                      name="confirmPassword"
-                      type="password"
-                      placeholder="Confirm your password"
-                      required
-                    />
-                  </div>
-                  <Button type="submit" className="w-full">
-                    Register
-                  </Button>
-                </form>
-              </TabsContent>
-            </Tabs>
+        <Tabs defaultValue="login" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 bg-gray-800">
+            <TabsTrigger value="login" className="data-[state=active]:bg-yellow-400 data-[state=active]:text-gray-900">Login</TabsTrigger>
+            <TabsTrigger value="register" className="data-[state=active]:bg-yellow-400 data-[state=active]:text-gray-900">Register</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="login" className="space-y-4">
+            <form onSubmit={handleLogin} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="usernameOrEmail" className="text-gray-200">Username or Email</Label>
+            <Input
+              id="usernameOrEmail"
+              name="usernameOrEmail"
+              type="text"
+              placeholder="Enter username or email"
+              required
+              className="bg-gray-800 border-gray-700 text-gray-200"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="password" className="text-gray-200">Password</Label>
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              placeholder="Enter password"
+              required
+              className="bg-gray-800 border-gray-700 text-gray-200"
+            />
+          </div>
+          <Button type="submit" className="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold">
+            Login
+          </Button>
+            </form>
+          </TabsContent>
+          
+          <TabsContent value="register" className="space-y-4">
+            <form onSubmit={handleRegister} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="username" className="text-gray-200">Username</Label>
+            <Input
+              id="username"
+              name="username"
+              type="text"
+              placeholder="Choose a username"
+              required
+              className="bg-gray-800 border-gray-700 text-gray-200"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="email" className="text-gray-200">Email</Label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              placeholder="Enter your email"
+              required
+              className="bg-gray-800 border-gray-700 text-gray-200"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="registerPassword" className="text-gray-200">Password</Label>
+            <Input
+              id="registerPassword"
+              name="password"
+              type="password"
+              placeholder="Create a password"
+              required
+              className="bg-gray-800 border-gray-700 text-gray-200"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="confirmPassword" className="text-gray-200">Confirm Password</Label>
+            <Input
+              id="confirmPassword"
+              name="confirmPassword"
+              type="password"
+              placeholder="Confirm your password"
+              required
+              className="bg-gray-800 border-gray-700 text-gray-200"
+            />
+          </div>
+          <Button type="submit" className="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold">
+            Register
+          </Button>
+            </form>
+          </TabsContent>
+        </Tabs>
           </CardContent>
         </Card>
       </div>
@@ -217,7 +216,21 @@ export default function WordleGameWithAuth() {
       {/* Top navigation bar */}
       <div className="flex justify-between items-center p-3 max-w-sm mx-auto bg-gray-900/95 backdrop-blur-sm sticky top-0 z-10">
         <span className="text-sm text-gray-400 font-mono">👋 Hi, {user.username}!</span>
-        <h1 className="text-lg font-bold text-green-400 font-mono">CWRU Wordle</h1>
+        
+        <div className="flex items-center gap-2">
+          <h1 className="text-lg font-bold text-yellow-400 font-mono">ΣN games</h1>
+          <Link href="/rankings">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              className="text-gray-400 hover:text-yellow-400 hover:bg-gray-800 p-2"
+              title="View Rankings"
+            >
+              <Trophy className="h-4 w-4" />
+            </Button>
+          </Link>
+        </div>
+        
         <Button 
           variant="ghost" 
           size="sm"

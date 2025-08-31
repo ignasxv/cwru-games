@@ -632,3 +632,129 @@ export async function verifyAdminToken(token: string) {
     return { success: false, message: "Token verification failed" };
   }
 }
+
+// Ranking and points functions
+export async function getGameRankings(gameId: number, limit: number = 10) {
+  try {
+    const rankings = await db
+      .select({
+        id: gameplays.id,
+        userId: gameplays.userId,
+        username: users.username,
+        fullName: users.fullName,
+        pointsEarned: gameplays.pointsEarned,
+        numTries: gameplays.numTries,
+        completed: gameplays.completed,
+        createdAt: gameplays.createdAt
+      })
+      .from(gameplays)
+      .innerJoin(users, eq(gameplays.userId, users.id))
+      .where(and(eq(gameplays.gameId, gameId), eq(gameplays.completed, true)))
+      .orderBy(desc(gameplays.pointsEarned), asc(gameplays.numTries), asc(gameplays.createdAt))
+      .limit(limit);
+
+    return { success: true, rankings };
+  } catch (error) {
+    console.error("Error getting game rankings:", error);
+    return { success: false, rankings: [] };
+  }
+}
+
+export async function getOverallRankings(limit: number = 20) {
+  try {
+    const rankings = await db
+      .select({
+        userId: gameplays.userId,
+        username: users.username,
+        fullName: users.fullName,
+        totalPoints: sql<number>`sum(${gameplays.pointsEarned})`,
+        gamesCompleted: sql<number>`count(case when ${gameplays.completed} = 1 then 1 end)`,
+        averageScore: sql<number>`round(avg(${gameplays.pointsEarned}), 1)`,
+        bestScore: sql<number>`max(${gameplays.pointsEarned})`
+      })
+      .from(gameplays)
+      .innerJoin(users, eq(gameplays.userId, users.id))
+      .where(eq(gameplays.completed, true))
+      .groupBy(gameplays.userId)
+      .orderBy(desc(sql`sum(${gameplays.pointsEarned})`), desc(sql`count(case when ${gameplays.completed} = 1 then 1 end)`))
+      .limit(limit);
+
+    return { success: true, rankings };
+  } catch (error) {
+    console.error("Error getting overall rankings:", error);
+    return { success: false, rankings: [] };
+  }
+}
+
+export async function getUserStats(userId: number) {
+  try {
+    const [userStats] = await db
+      .select({
+        totalPoints: sql<number>`sum(${gameplays.pointsEarned})`,
+        gamesCompleted: sql<number>`count(case when ${gameplays.completed} = 1 then 1 end)`,
+        gamesPlayed: sql<number>`count(*)`,
+        averageScore: sql<number>`round(avg(${gameplays.pointsEarned}), 1)`,
+        bestScore: sql<number>`max(${gameplays.pointsEarned})`,
+        winRate: sql<number>`round(count(case when ${gameplays.completed} = 1 then 1 end) * 100.0 / count(*), 1)`
+      })
+      .from(gameplays)
+      .where(eq(gameplays.userId, userId));
+
+    return { success: true, stats: userStats };
+  } catch (error) {
+    console.error("Error getting user stats:", error);
+    return { success: false, stats: null };
+  }
+}
+
+export async function getUserRankPosition(userId: number) {
+  try {
+    // Get all users ranked by total points
+    const allRankings = await db
+      .select({
+        userId: gameplays.userId,
+        totalPoints: sql<number>`sum(${gameplays.pointsEarned})`
+      })
+      .from(gameplays)
+      .where(eq(gameplays.completed, true))
+      .groupBy(gameplays.userId)
+      .orderBy(desc(sql`sum(${gameplays.pointsEarned})`));
+
+    const userPosition = allRankings.findIndex(ranking => ranking.userId === userId) + 1;
+    
+    return { 
+      success: true, 
+      position: userPosition || null, 
+      totalPlayers: allRankings.length 
+    };
+  } catch (error) {
+    console.error("Error getting user rank position:", error);
+    return { success: false, position: null, totalPlayers: 0 };
+  }
+}
+
+export async function getGameRankingsWithoutWord(limit: number = 20) {
+  try {
+    const rankings = await db
+      .select({
+        gameId: games.id,
+        hint: games.hint,
+        createdAt: games.createdAt,
+        topScore: sql<number>`max(${gameplays.pointsEarned})`,
+        averageScore: sql<number>`round(avg(${gameplays.pointsEarned}), 1)`,
+        totalPlayers: sql<number>`count(distinct ${gameplays.userId})`,
+        completions: sql<number>`count(case when ${gameplays.completed} = 1 then 1 end)`
+      })
+      .from(games)
+      .leftJoin(gameplays, eq(games.id, gameplays.gameId))
+      .where(eq(games.active, true))
+      .groupBy(games.id)
+      .orderBy(desc(games.createdAt))
+      .limit(limit);
+
+    return { success: true, rankings };
+  } catch (error) {
+    console.error("Error getting game rankings without word:", error);
+    return { success: false, rankings: [] };
+  }
+}

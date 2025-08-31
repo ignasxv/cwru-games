@@ -283,7 +283,7 @@ export default function AdminPage() {
         <div className="mb-8">
           <div className="flex justify-between items-center mb-4">
             <div>
-              <h1 className="text-4xl font-bold text-green-400 mb-2 font-mono">Admin Dashboard</h1>
+              <h1 className="text-4xl font-bold text-yellow-400 mb-2 font-mono">Admin Dashboard</h1>
               <p className="text-gray-300">Manage your Wordle games and view player statistics</p>
             </div>
             <div className="flex gap-2">
@@ -322,10 +322,10 @@ export default function AdminPage() {
           <Card className="bg-gray-800 border-gray-700">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-gray-200">Total Games</CardTitle>
-              <GamepadIcon className="h-4 w-4 text-green-400" />
+              <GamepadIcon className="h-4 w-4 text-yellow-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-400">{stats.totalGames}</div>
+              <div className="text-2xl font-bold text-yellow-400">{stats.totalGames}</div>
             </CardContent>
           </Card>
           
@@ -362,7 +362,7 @@ export default function AdminPage() {
             {/* Add New Game Form */}
             <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
-                <CardTitle className="text-green-400 flex items-center gap-2">
+                <CardTitle className="text-yellow-400 flex items-center gap-2">
                   <Plus className="h-5 w-5" />
                   Add New Game
                 </CardTitle>
@@ -440,7 +440,7 @@ export default function AdminPage() {
                           <TableCell className="font-mono font-semibold text-blue-400">
                             {index + 1}
                           </TableCell>
-                          <TableCell className="font-mono font-semibold text-green-400">
+                          <TableCell className="font-mono font-semibold text-yellow-400">
                             {game.word}
                           </TableCell>
                           <TableCell className="text-gray-300 max-w-xs truncate">

@@ -8,9 +8,8 @@ import { AuthProvider } from "@/lib/auth/AuthContext"
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'CWRU Wordle Game',
+  title: 'Sigma Nu Games',
   description: 'A Wordle game for Case Western Reserve University',
-  generator: 'v0.app',
 }
 
 export default function RootLayout({
