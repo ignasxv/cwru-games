@@ -41,6 +41,13 @@ export const gameStats = sqliteTable("game_stats", {
   lastPlayedAt: text("last_played_at").default("CURRENT_TIMESTAMP"),
 });
 
+export const admins = sqliteTable("admins", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  username: text("username").notNull().unique(),
+  password: text("password").notNull(),
+  createdAt: text("created_at").default(sql`(datetime('now'))`),
+});
+
 // Types for TypeScript
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -50,3 +57,5 @@ export type Gameplay = typeof gameplays.$inferSelect;
 export type NewGameplay = typeof gameplays.$inferInsert;
 export type GameStats = typeof gameStats.$inferSelect;
 export type NewGameStats = typeof gameStats.$inferInsert;
+export type Admin = typeof admins.$inferSelect;
+export type NewAdmin = typeof admins.$inferInsert;

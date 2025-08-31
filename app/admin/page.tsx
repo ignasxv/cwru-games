@@ -11,15 +11,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/dialog";
-import { Plus, Users, GamepadIcon, BarChart3, ToggleLeft, ToggleRight, Calendar, Trash2 } from "lucide-react";
+import { Plus, Users, GamepadIcon, BarChart3, ToggleLeft, ToggleRight, Calendar, Trash2, LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import AdminAuth from "@/components/admin-auth";
 import { 
   createGame, 
   getAllGames, 
   getAllUsers, 
   toggleGameActive, 
   getGameStats,
-  deleteGame
+  deleteGame,
+  verifyAdminToken
 } from "@/lib/actions/game-actions";
 import type { Game, User } from "@/lib/db/schema";
 
@@ -32,6 +34,9 @@ interface GameStats {
 
 export default function AdminPage() {
   const { toast } = useToast();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [adminToken, setAdminToken] = useState<string | null>(null);
   const [games, setGames] = useState<Game[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [stats, setStats] = useState<GameStats>({
@@ -50,8 +55,50 @@ export default function AdminPage() {
   });
 
   useEffect(() => {
-    loadData();
+    checkAuthStatus();
   }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadData();
+    }
+  }, [isAuthenticated]);
+
+  const checkAuthStatus = async () => {
+    try {
+      const token = localStorage.getItem('adminToken');
+      if (token) {
+        const result = await verifyAdminToken(token);
+        if (result.success) {
+          setIsAuthenticated(true);
+          setAdminToken(token);
+        } else {
+          localStorage.removeItem('adminToken');
+        }
+      }
+    } catch (error) {
+      console.error('Auth check failed:', error);
+      localStorage.removeItem('adminToken');
+    } finally {
+      setIsCheckingAuth(false);
+    }
+  };
+
+  const handleAuthenticated = (token: string) => {
+    setAdminToken(token);
+    setIsAuthenticated(true);
+    setIsCheckingAuth(false);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('adminToken');
+    setIsAuthenticated(false);
+    setAdminToken(null);
+    toast({
+      title: "Logged out",
+      description: "You have been successfully logged out",
+    });
+  };
 
   const loadData = async () => {
     setIsLoading(true);
@@ -201,6 +248,23 @@ export default function AdminPage() {
     });
   };
 
+  // Show auth loading state
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen bg-gray-900 text-gray-100 p-8 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-400 mx-auto mb-4"></div>
+          <p className="text-gray-300">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show auth component if not authenticated
+  if (!isAuthenticated) {
+    return <AdminAuth onAuthenticated={handleAuthenticated} />;
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-900 text-gray-100 p-8 flex items-center justify-center">
@@ -222,14 +286,24 @@ export default function AdminPage() {
               <h1 className="text-4xl font-bold text-green-400 mb-2 font-mono">Admin Dashboard</h1>
               <p className="text-gray-300">Manage your Wordle games and view player statistics</p>
             </div>
-            <Link href="/">
+            <div className="flex gap-2">
+              <Link href="/">
+                <Button
+                  variant="outline" 
+                  className="bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700"
+                >
+                  ← Back to Game
+                </Button>
+              </Link>
               <Button
-                variant="outline" 
-                className="bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700"
+                variant="outline"
+                onClick={handleLogout}
+                className="bg-red-800 border-red-600 text-red-200 hover:bg-red-700"
               >
-                ← Back to Game
+                <LogOut className="w-4 h-4 mr-1" />
+                Logout
               </Button>
-            </Link>
+            </div>
           </div>
         </div>
 

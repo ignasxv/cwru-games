@@ -15,12 +15,15 @@ export async function initializeDatabase() {
     if (gameCount.length === 0) {
       // Insert some sample games
       const sampleGames = [
-        { word: "CWRU", hint: "it's just and abbreviation" },
+        { word: "CWRU", hint: "it's just an abbreviation" },
       ];
 
       await db.insert(schema.games).values(sampleGames);
       console.log("Sample games inserted into database");
     }
+
+    // Initialize admin table if it doesn't exist (will be handled by migrations)
+    console.log("Database initialization completed");
   } catch (error) {
     console.error("Error initializing database:", error);
   }

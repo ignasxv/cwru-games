@@ -2,7 +2,7 @@
 
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
-import { users, games, gameplays, gameStats, type NewUser, type NewGame, type NewGameplay } from "@/lib/db/schema";
+import { users, games, gameplays, gameStats, admins, type NewUser, type NewGame, type NewGameplay, type NewAdmin } from "@/lib/db/schema";
 import { eq, desc, or, and, asc, max, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { signJWT, verifyJWT, getCurrentUserFromToken } from "@/lib/auth/jwt";
@@ -277,7 +277,8 @@ export async function loginUser(usernameOrEmail: string, password: string) {
       userId: user[0].id,
       username: user[0].username,
       email: user[0].email,
-      phoneNumber: user[0].phoneNumber
+      phoneNumber: user[0].phoneNumber,
+      type: 'user'
     });
 
     return {
@@ -299,7 +300,7 @@ export async function loginUser(usernameOrEmail: string, password: string) {
 export async function getCurrentUser() {
   try {
     const userPayload = await getCurrentUserFromToken();
-    if (!userPayload) return null;
+    if (!userPayload || !userPayload.userId) return null;
 
     // Verify the user still exists in the database
     const [user] = await db.select({
@@ -319,7 +320,7 @@ export async function getCurrentUser() {
 export async function verifyToken(token: string) {
   try {
     const payload = verifyJWT(token);
-    if (!payload) return { success: false, message: "Invalid token" };
+    if (!payload || !payload.userId) return { success: false, message: "Invalid token" };
 
     // Verify the user still exists
     const [user] = await db.select({
@@ -368,10 +369,10 @@ export async function getRandomUnplayedGame(userId: number) {
       .from(gameplays)
       .where(eq(gameplays.userId, userId));
     
-    const playedIds = playedGameIds.map(pg => pg.gameId);
+    const playedIds = playedGameIds.map((pg: { gameId: number | null }) => pg.gameId);
     
     // Filter out played games
-    const unplayedGames = activeGames.filter(game => !playedIds.includes(game.id));
+    const unplayedGames = activeGames.filter((game: any) => !playedIds.includes(game.id));
     
     if (unplayedGames.length === 0) {
       return null; // All games have been played
@@ -402,11 +403,11 @@ export async function getUserCurrentLevel(userId: number) {
       .from(gameplays)
       .where(and(eq(gameplays.userId, userId), eq(gameplays.completed, true)));
     
-    const completedGameIds = new Set(completedGameplays.map(gp => gp.gameId));
+    const completedGameIds = new Set(completedGameplays.map((gp: { gameId: number | null }) => gp.gameId));
     
     // Find the highest completed level (1-indexed)
     let maxCompletedLevel = 0;
-    allGames.forEach((game, index) => {
+    allGames.forEach((game: any, index: number) => {
       if (completedGameIds.has(game.id)) {
         maxCompletedLevel = Math.max(maxCompletedLevel, index + 1);
       }
@@ -503,11 +504,11 @@ export async function getUserCompletedLevels(userId: number) {
       .from(gameplays)
       .where(and(eq(gameplays.userId, userId), eq(gameplays.completed, true)));
     
-    const completedGameIds = new Set(completedGameplays.map(gp => gp.gameId));
+    const completedGameIds = new Set(completedGameplays.map((gp: { gameId: number | null }) => gp.gameId));
     const completedLevels: number[] = [];
     
     // Map game IDs to their dynamic levels
-    allGames.forEach((game, index) => {
+    allGames.forEach((game: any, index: number) => {
       if (completedGameIds.has(game.id)) {
         completedLevels.push(index + 1); // 1-indexed levels
       }
@@ -549,5 +550,85 @@ export async function saveGameplayProgress(
   } catch (error) {
     console.error("Error saving gameplay progress:", error);
     return { success: false, error: "Failed to save gameplay" };
+  }
+}
+
+// Admin authentication functions
+export async function checkIfAdminExists() {
+  try {
+    const existingAdmins = await db.select().from(admins).limit(1);
+    return { success: true, hasAdmin: existingAdmins.length > 0 };
+  } catch (error) {
+    console.error("Error checking admin existence:", error);
+    return { success: false, hasAdmin: false };
+  }
+}
+
+export async function createAdmin(username: string, password: string) {
+  try {
+    // Check if any admin already exists
+    const existingAdmins = await db.select().from(admins).limit(1);
+    if (existingAdmins.length > 0) {
+      return { success: false, message: "Admin already exists" };
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    // Create admin
+    const [newAdmin] = await db.insert(admins).values({
+      username,
+      password: hashedPassword,
+      createdAt: new Date().toISOString()
+    }).returning({
+      id: admins.id,
+      username: admins.username,
+      createdAt: admins.createdAt
+    });
+
+    return { success: true, admin: newAdmin };
+  } catch (error) {
+    console.error("Error creating admin:", error);
+    return { success: false, message: "Failed to create admin" };
+  }
+}
+
+export async function loginAdmin(username: string, password: string) {
+  try {
+    const [admin] = await db.select().from(admins).where(eq(admins.username, username));
+
+    if (!admin) {
+      return { success: false, message: "Invalid credentials" };
+    }
+
+    const isValidPassword = await bcrypt.compare(password, admin.password);
+    if (!isValidPassword) {
+      return { success: false, message: "Invalid credentials" };
+    }
+
+    // Create a JWT token for admin session
+    const token = await signJWT({ adminId: admin.id, username: admin.username, type: 'admin' });
+
+    return { 
+      success: true, 
+      admin: { id: admin.id, username: admin.username },
+      token
+    };
+  } catch (error) {
+    console.error("Error logging in admin:", error);
+    return { success: false, message: "Login failed" };
+  }
+}
+
+export async function verifyAdminToken(token: string) {
+  try {
+    const payload = await verifyJWT(token);
+    if (payload && payload.type === 'admin' && payload.adminId) {
+      return { success: true, adminId: payload.adminId, username: payload.username };
+    }
+    return { success: false, message: "Invalid admin token" };
+  } catch (error) {
+    console.error("Error verifying admin token:", error);
+    return { success: false, message: "Token verification failed" };
   }
 }

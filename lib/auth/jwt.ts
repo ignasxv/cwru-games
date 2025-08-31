@@ -5,10 +5,12 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-t
 const JWT_EXPIRES_IN = '7d'; // Token expires in 7 days
 
 export interface JWTPayload {
-  userId: number;
+  userId?: number;
+  adminId?: number;
   username: string;
-  email: string | null;
+  email?: string | null;
   phoneNumber?: string | null;
+  type?: 'user' | 'admin';
   iat?: number;
   exp?: number;
 }
