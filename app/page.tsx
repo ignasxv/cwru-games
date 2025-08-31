@@ -7,7 +7,7 @@ export default async function CWRUWordle() {
   
   return (
     <>
-      <WordleGameWithAuth title="CWRU WORDLE" subtitle="Guess the CWRU word in 6 tries!" />
+      <WordleGameWithAuth />
     </>
   )
 }

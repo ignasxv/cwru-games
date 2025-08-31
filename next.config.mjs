@@ -9,6 +9,15 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  experimental: {
+    serverActions: {
+      allowedOrigins: [
+        "localhost:3000",
+        // Allow any devtunnels.ms subdomain for development
+        /.*\.devtunnels\.ms$/,
+      ],
+    },
+  },
 }
 
 export default nextConfig

@@ -11,12 +11,7 @@ import { loginUser, registerUser } from "@/lib/actions/game-actions"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/lib/auth/AuthContext"
 
-interface WordleGameWithAuthProps {
-  title: string
-  subtitle: string
-}
-
-export default function WordleGameWithAuth({ title, subtitle }: WordleGameWithAuthProps) {
+export default function WordleGameWithAuth() {
   const { user, isLoading, login, logout } = useAuth()
   const { toast } = useToast()
 
@@ -116,8 +111,8 @@ export default function WordleGameWithAuth({ title, subtitle }: WordleGameWithAu
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold">{title}</CardTitle>
-            <CardDescription>{subtitle}</CardDescription>
+            <CardTitle className="text-2xl font-bold">CWRU Wordle</CardTitle>
+            <CardDescription>Guess the CWRU word in 6 tries!</CardDescription>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="login" className="w-full">
@@ -218,12 +213,11 @@ export default function WordleGameWithAuth({ title, subtitle }: WordleGameWithAu
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
-      {/* Subtle top bar */}
-      <div className="flex justify-between items-center p-4 max-w-md mx-auto">
-        <div className="flex items-center space-x-2">
-          <span className="text-sm text-gray-400 font-mono">👋 Hi, {user.username}!</span>
-        </div>
+    <div className="min-h-[100dvh] bg-gray-900 pb-safe">
+      {/* Top navigation bar */}
+      <div className="flex justify-between items-center p-3 max-w-sm mx-auto bg-gray-900/95 backdrop-blur-sm sticky top-0 z-10">
+        <span className="text-sm text-gray-400 font-mono">👋 Hi, {user.username}!</span>
+        <h1 className="text-lg font-bold text-green-400 font-mono">CWRU Wordle</h1>
         <Button 
           variant="ghost" 
           size="sm"
@@ -234,8 +228,8 @@ export default function WordleGameWithAuth({ title, subtitle }: WordleGameWithAu
         </Button>
       </div>
       
-      <main>
-        <WordleGame userId={user.id} title={title} subtitle={subtitle} />
+      <main className="pt-2">
+        <WordleGame userId={user.id} />
       </main>
     </div>
   )

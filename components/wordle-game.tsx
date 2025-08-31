@@ -20,11 +20,9 @@ interface GameState {
 
 interface WordleGameProps {
   userId?: number
-  title?: string
-  subtitle?: string
 }
 
-export default function WordleGame({ userId, title = "CWRU WORDLE", subtitle = "Guess the CWRU word in 6 tries!" }: WordleGameProps) {
+export default function WordleGame({ userId }: WordleGameProps) {
   const { toast } = useToast()
   const [gameState, setGameState] = useState<GameState>({
     currentGuess: "",
@@ -253,14 +251,14 @@ export default function WordleGame({ userId, title = "CWRU WORDLE", subtitle = "
     ]
 
     return rows.map((row, i) => (
-      <div key={i} className="flex gap-1 justify-center">
+      <div key={i} className={`flex gap-0.5 justify-center px-1 ${i === 1 ? 'px-6' : ''}`}>
         {row.map((key) => {
           const state = letterStates[key] || "empty"
           const isSpecial = key === "ENTER" || key === "BACKSPACE"
 
           const buttonClass = `
-            h-12 font-semibold rounded text-sm transition-all duration-200 font-mono
-            ${isSpecial ? "px-4" : "w-10"}
+            h-11 font-semibold rounded text-xs transition-all duration-200 font-mono flex items-center justify-center
+            ${isSpecial ? "px-2 min-w-[54px]" : "flex-1 min-w-[28px] max-w-[34px]"}
             ${state === "correct" ? "bg-green-500 text-black hover:bg-green-600" : ""}
             ${state === "present" ? "bg-yellow-500 text-black hover:bg-yellow-600" : ""}
             ${state === "absent" ? "bg-gray-600 text-gray-200 hover:bg-gray-500" : ""}
@@ -274,7 +272,7 @@ export default function WordleGame({ userId, title = "CWRU WORDLE", subtitle = "
               onClick={() => handleKeyPress(key)}
               disabled={gameState.gameStatus !== "playing"}
             >
-              {key === "BACKSPACE" ? "⌫" : key}
+              {key === "BACKSPACE" ? "⌫" : key === "ENTER" ? "↵" : key}
             </Button>
           )
         })}
@@ -284,7 +282,7 @@ export default function WordleGame({ userId, title = "CWRU WORDLE", subtitle = "
 
   const shareResults = () => {
     const guessCount = gameState.gameStatus === "won" ? gameState.guesses.length : "X"
-    const text = `${title} ${guessCount}/6\n\n${gameState.guesses
+    const text = `CWRU Wordle ${guessCount}/6\n\n${gameState.guesses
       .map((guess) =>
         guess
           .split("")
@@ -304,8 +302,8 @@ export default function WordleGame({ userId, title = "CWRU WORDLE", subtitle = "
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-gray-100 p-4 font-mono">
-      <div className="max-w-md mx-auto">
+    <div className="min-h-[100dvh] bg-gray-900 text-gray-100 font-mono">
+      <div className="max-w-sm mx-auto px-2 pb-4 w-full">
         {/* Loading State */}
         {loading && (
           <div className="text-center py-20">
@@ -317,14 +315,8 @@ export default function WordleGame({ userId, title = "CWRU WORDLE", subtitle = "
         {/* Game Content */}
         {!loading && targetWord && (
           <>
-            {/* Header */}
-            <div className="text-center mb-8">
-              <h1 className="text-4xl font-bold text-green-400 mb-2 font-mono">{title}</h1>
-              <p className="text-gray-300 font-mono">{subtitle}</p>
-            </div>
-
             {/* Action Buttons */}
-            <div className="flex justify-center gap-2 mb-8">
+            <div className="flex justify-center gap-2 mb-6">
               <Popover open={showHint} onOpenChange={setShowHint}>
                 <PopoverTrigger asChild>
                   <Button
@@ -369,7 +361,7 @@ export default function WordleGame({ userId, title = "CWRU WORDLE", subtitle = "
 
         {/* Game Status */}
         {gameState.gameStatus === "won" && (
-          <Card className="p-4 mb-6 text-center bg-green-900/30 border-green-500">
+          <Card className="p-3 mb-4 text-center bg-green-900/30 border-green-500">
             <div className="flex items-center justify-center gap-2 mb-2">
               <Trophy className="w-5 h-5 text-green-400" />
               <span className="font-semibold text-green-400 font-mono">Congratulations!</span>
@@ -381,25 +373,25 @@ export default function WordleGame({ userId, title = "CWRU WORDLE", subtitle = "
         )}
 
         {gameState.gameStatus === "lost" && (
-          <Card className="p-4 mb-6 text-center bg-red-900/30 border-red-500">
+          <Card className="p-3 mb-4 text-center bg-red-900/30 border-red-500">
             <div className="font-semibold text-red-400 mb-2 font-mono">Game Over!</div>
             <p className="text-sm text-gray-300 font-mono">The word was "{targetWord}"</p>
           </Card>
         )}
 
         {/* Game Grid */}
-        <div className="space-y-2 mb-8">{renderGrid()}</div>
+        <div className="space-y-1.5 mb-4">{renderGrid()}</div>
 
         {/* Keyboard */}
-        <div className="space-y-2">{renderKeyboard()}</div>
+        <div className="space-y-1 mb-4 w-full">{renderKeyboard()}</div>
 
         {/* Game Stats */}
-        <div className="mt-8 text-center">
-          <div className="flex justify-center gap-4">
-            <Badge variant="outline" className="bg-gray-800 border-gray-600 text-gray-200 font-mono">
+        <div className="text-center">
+          <div className="flex justify-center gap-3">
+            <Badge variant="outline" className="bg-gray-800 border-gray-600 text-gray-200 font-mono text-xs">
               Guess {gameState.currentRow + 1}/6
             </Badge>
-            <Badge variant="outline" className="bg-gray-800 border-gray-600 text-gray-200 font-mono">
+            <Badge variant="outline" className="bg-gray-800 border-gray-600 text-gray-200 font-mono text-xs">
               Word: {targetWord.length} letters
             </Badge>
           </div>

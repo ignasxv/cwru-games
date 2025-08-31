@@ -3,6 +3,28 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Mobile viewport and safe area handling */
+@supports (height: 100dvh) {
+  .min-h-screen {
+    min-height: 100dvh;
+  }
+}
+
+/* Prevent viewport zoom on input focus */
+@media screen and (max-width: 767px) {
+  input[type="text"], 
+  input[type="email"], 
+  input[type="password"], 
+  input[type="tel"] {
+    font-size: 16px !important;
+  }
+}
+
+/* Ensure content fits above virtual keyboard */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
 :root {
   --background: #ffffff;
   --foreground: #374151;
