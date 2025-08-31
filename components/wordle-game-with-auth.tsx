@@ -218,22 +218,23 @@ export default function WordleGameWithAuth({ title, subtitle }: WordleGameWithAu
   }
 
   return (
-    <div className="min-h-screen">
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-            <p className="text-gray-600">{subtitle}</p>
-          </div>
-          <div className="flex items-center space-x-4">
-            <span className="text-sm text-gray-600">Welcome, {user.username}!</span>
-            <Button variant="outline" onClick={handleLogout}>
-              Logout
-            </Button>
-          </div>
+    <div className="min-h-screen bg-gray-900">
+      {/* Subtle top bar */}
+      <div className="flex justify-between items-center p-4 max-w-md mx-auto">
+        <div className="flex items-center space-x-2">
+          <span className="text-sm text-gray-400 font-mono">👋 Hi, {user.username}!</span>
         </div>
-      </header>
-      <main className="max-w-4xl mx-auto px-4 py-8">
+        <Button 
+          variant="ghost" 
+          size="sm"
+          onClick={handleLogout}
+          className="text-gray-400 hover:text-gray-200 hover:bg-gray-800 font-mono text-xs"
+        >
+          Logout
+        </Button>
+      </div>
+      
+      <main>
         <WordleGame userId={user.id} title={title} subtitle={subtitle} />
       </main>
     </div>

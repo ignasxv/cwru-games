@@ -67,6 +67,20 @@ export async function getActiveGames() {
   }
 }
 
+export async function getRandomActiveGame() {
+  try {
+    const activeGames = await db.select().from(games).where(eq(games.active, true));
+    if (activeGames.length === 0) {
+      return null;
+    }
+    const randomIndex = Math.floor(Math.random() * activeGames.length);
+    return activeGames[randomIndex];
+  } catch (error) {
+    console.error("Error getting random active game:", error);
+    return null;
+  }
+}
+
 export async function toggleGameActive(gameId: number) {
   try {
     const [game] = await db.select().from(games).where(eq(games.id, gameId));

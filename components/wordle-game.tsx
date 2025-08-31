@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { InfoIcon, RotateCcw, Trophy, Share2 } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useToast } from "@/hooks/use-toast"
-import cwruWords from "@/data/cwru-words.json"
+import { getRandomActiveGame } from "@/lib/actions/game-actions"
 
 type LetterState = "correct" | "present" | "absent" | "empty"
 
@@ -26,7 +26,6 @@ interface WordleGameProps {
 
 export default function WordleGame({ userId, title = "CWRU WORDLE", subtitle = "Guess the CWRU word in 6 tries!" }: WordleGameProps) {
   const { toast } = useToast()
-  const words = cwruWords.words
   const [gameState, setGameState] = useState<GameState>({
     currentGuess: "",
     guesses: [],
@@ -38,26 +37,47 @@ export default function WordleGame({ userId, title = "CWRU WORDLE", subtitle = "
   const [showHint, setShowHint] = useState(false)
   const [letterStates, setLetterStates] = useState<Record<string, LetterState>>({})
   const [animatingRow, setAnimatingRow] = useState<number | null>(null)
+  const [loading, setLoading] = useState(true)
 
   // Initialize game
   useEffect(() => {
     startNewGame()
   }, [])
 
-  const startNewGame = useCallback(() => {
-    const randomWord = words[Math.floor(Math.random() * words.length)]
-    setTargetWord(randomWord.word)
-    setTargetHint(randomWord.hint)
-    setGameState({
-      currentGuess: "",
-      guesses: [],
-      gameStatus: "playing",
-      currentRow: 0,
-    })
-    setLetterStates({})
-    setShowHint(false)
-    setAnimatingRow(null)
-  }, [words])
+  const startNewGame = useCallback(async () => {
+    setLoading(true)
+    try {
+      const randomGame = await getRandomActiveGame()
+      if (randomGame) {
+        setTargetWord(randomGame.word.toUpperCase())
+        setTargetHint(randomGame.hint || "No hint available")
+        setGameState({
+          currentGuess: "",
+          guesses: [],
+          gameStatus: "playing",
+          currentRow: 0,
+        })
+        setLetterStates({})
+        setShowHint(false)
+        setAnimatingRow(null)
+      } else {
+        toast({
+          title: "No games available",
+          description: "No active games found in the database",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Error starting new game:", error)
+      toast({
+        title: "Error",
+        description: "Failed to load game. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   const getLetterState = (letter: string, position: number, word: string): LetterState => {
     if (targetWord[position] === letter) return "correct"
@@ -84,6 +104,8 @@ export default function WordleGame({ userId, title = "CWRU WORDLE", subtitle = "
   }
 
   const submitGuess = useCallback(() => {
+    if (!targetWord) return
+    
     if (gameState.currentGuess.length !== targetWord.length) {
       toast({
         title: "Invalid guess",
@@ -137,7 +159,7 @@ export default function WordleGame({ userId, title = "CWRU WORDLE", subtitle = "
 
   const handleKeyPress = useCallback(
     (key: string) => {
-      if (gameState.gameStatus !== "playing") return
+      if (gameState.gameStatus !== "playing" || !targetWord) return
 
       if (key === "ENTER") {
         submitGuess()
@@ -153,7 +175,7 @@ export default function WordleGame({ userId, title = "CWRU WORDLE", subtitle = "
         }))
       }
     },
-    [gameState, submitGuess, targetWord.length],
+    [gameState, submitGuess, targetWord],
   )
 
   // Keyboard event listener
@@ -171,6 +193,8 @@ export default function WordleGame({ userId, title = "CWRU WORDLE", subtitle = "
   }, [handleKeyPress])
 
   const renderGrid = () => {
+    if (!targetWord) return null
+    
     const rows = []
 
     for (let i = 0; i < 6; i++) {
@@ -282,78 +306,66 @@ export default function WordleGame({ userId, title = "CWRU WORDLE", subtitle = "
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100 p-4 font-mono">
       <div className="max-w-md mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-green-400 mb-2 font-mono">{title}</h1>
-          <p className="text-gray-300 font-mono">{subtitle}</p>
-
-          <div className="mt-4 p-4 bg-gray-800 border border-gray-700 rounded-lg">
-            <h3 className="font-semibold mb-2 text-sm text-gray-200 font-mono">How to Play:</h3>
-            <div className="flex justify-center gap-4 text-xs font-mono">
-              <div className="flex items-center gap-1">
-                <div className="w-6 h-6 bg-green-500 rounded flex items-center justify-center text-black font-bold font-mono">
-                  A
-                </div>
-                <span className="text-gray-300">Correct</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-6 h-6 bg-yellow-500 rounded flex items-center justify-center text-black font-bold font-mono">
-                  B
-                </div>
-                <span className="text-gray-300">Wrong spot</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-6 h-6 bg-gray-600 rounded flex items-center justify-center text-gray-200 font-bold font-mono">
-                  C
-                </div>
-                <span className="text-gray-300">Not in word</span>
-              </div>
-            </div>
+        {/* Loading State */}
+        {loading && (
+          <div className="text-center py-20">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-green-400 mx-auto mb-4"></div>
+            <p className="text-gray-300 font-mono">Loading game...</p>
           </div>
+        )}
 
-          <div className="flex justify-center gap-2 mt-4">
-            <Popover open={showHint} onOpenChange={setShowHint}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700 font-mono"
-                >
-                  <InfoIcon className="w-4 h-4 mr-1" />
-                  Hint
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80 bg-gray-800 border-gray-600 text-gray-200">
-                <div className="space-y-2">
-                  <h4 className="font-semibold font-mono">Hint:</h4>
-                  <p className="text-sm text-gray-300 font-mono">{targetHint}</p>
-                </div>
-              </PopoverContent>
-            </Popover>
+        {/* Game Content */}
+        {!loading && targetWord && (
+          <>
+            {/* Header */}
+            <div className="text-center mb-8">
+              <h1 className="text-4xl font-bold text-green-400 mb-2 font-mono">{title}</h1>
+              <p className="text-gray-300 font-mono">{subtitle}</p>
+            </div>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={startNewGame}
-              className="bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700 font-mono"
-            >
-              <RotateCcw className="w-4 h-4 mr-1" />
-              New Game
-            </Button>
+            {/* Action Buttons */}
+            <div className="flex justify-center gap-2 mb-8">
+              <Popover open={showHint} onOpenChange={setShowHint}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700 font-mono"
+                  >
+                    <InfoIcon className="w-4 h-4 mr-1" />
+                    Hint
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 bg-gray-800 border-gray-600 text-gray-200">
+                  <div className="space-y-2">
+                    <h4 className="font-semibold font-mono">Hint:</h4>
+                    <p className="text-sm text-gray-300 font-mono">{targetHint}</p>
+                  </div>
+                </PopoverContent>
+              </Popover>
 
-            {gameState.gameStatus !== "playing" && (
               <Button
                 variant="outline"
                 size="sm"
-                onClick={shareResults}
+                onClick={startNewGame}
                 className="bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700 font-mono"
               >
-                <Share2 className="w-4 h-4 mr-1" />
-                Share
+                <RotateCcw className="w-4 h-4 mr-1" />
+                New Game
               </Button>
-            )}
-          </div>
-        </div>
+
+              {gameState.gameStatus !== "playing" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={shareResults}
+                  className="bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700 font-mono"
+                >
+                  <Share2 className="w-4 h-4 mr-1" />
+                  Share
+                </Button>
+              )}
+            </div>
 
         {/* Game Status */}
         {gameState.gameStatus === "won" && (
@@ -392,6 +404,21 @@ export default function WordleGame({ userId, title = "CWRU WORDLE", subtitle = "
             </Badge>
           </div>
         </div>
+        </>
+        )}
+
+        {/* No Games Available State */}
+        {!loading && !targetWord && (
+          <div className="text-center py-20">
+            <p className="text-gray-300 font-mono mb-4">No active games available</p>
+            <Button
+              onClick={startNewGame}
+              className="bg-gray-700 hover:bg-gray-600 text-gray-200"
+            >
+              Try Again
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   )
