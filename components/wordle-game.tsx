@@ -335,7 +335,10 @@ export default function WordleGame({ userId }: WordleGameProps) {
         }
 
         const cellClass = `
-          w-14 h-14 border-2 flex items-center justify-center text-xl font-bold rounded-md font-mono
+          ${targetWord.length <= 5 ? "w-14 h-14" : targetWord.length === 6 ? "w-12 h-12" : "w-10 h-10"} 
+          border-2 flex items-center justify-center 
+          ${targetWord.length <= 5 ? "text-xl" : targetWord.length === 6 ? "text-lg" : "text-base"} 
+          font-bold rounded-md font-mono
           transition-all duration-300 
           ${isFlipping ? "flip-animation" : ""}
           ${isInvalidGuess ? "shake" : ""}
@@ -354,7 +357,7 @@ export default function WordleGame({ userId }: WordleGameProps) {
       }
 
       rows.push(
-        <div key={i} className="flex gap-2 justify-center">
+        <div key={i} className={`flex ${targetWord.length <= 5 ? "gap-2" : targetWord.length === 6 ? "gap-1.5" : "gap-1"} justify-center`}>
           {row}
         </div>,
       )
@@ -419,7 +422,7 @@ export default function WordleGame({ userId }: WordleGameProps) {
 
   return (
     <div className="min-h-[100dvh] bg-gray-900 text-gray-100 font-mono">
-      <div className="max-w-sm mx-auto px-2 pb-4 w-full">
+      <div className={`${targetWord && targetWord.length > 5 ? "max-w-md" : "max-w-sm"} mx-auto px-2 pb-4 w-full`}>
         {/* Loading State */}
         {loading && (
           <div className="text-center py-20">

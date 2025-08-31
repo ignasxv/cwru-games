@@ -40,7 +40,24 @@ export async function getAllUsers() {
 // Game actions
 export async function createGame(gameData: Omit<NewGame, "id" | "createdAt">) {
   try {
-    const [game] = await db.insert(games).values(gameData).returning();
+    // Validate word length
+    if (!gameData.word || gameData.word.length < 3) {
+      return { success: false, error: "Word must be at least 3 letters long" };
+    }
+    
+    if (gameData.word.length > 7) {
+      return { success: false, error: "Word cannot be longer than 7 letters" };
+    }
+    
+    // Validate word contains only letters
+    if (!/^[A-Za-z]+$/.test(gameData.word)) {
+      return { success: false, error: "Word can only contain letters" };
+    }
+    
+    const [game] = await db.insert(games).values({
+      ...gameData,
+      word: gameData.word.toUpperCase()
+    }).returning();
     revalidatePath("/admin");
     return { success: true, game };
   } catch (error) {

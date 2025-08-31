@@ -88,6 +88,24 @@ export default function AdminPage() {
       return;
     }
 
+    if (newGame.word.length > 7) {
+      toast({
+        title: "Error",
+        description: "Word cannot be longer than 7 letters",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newGame.word.length < 3) {
+      toast({
+        title: "Error",
+        description: "Word must be at least 3 letters long",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const result = await createGame({
@@ -262,9 +280,9 @@ export default function AdminPage() {
                         type="text"
                         value={newGame.word}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewGame({ ...newGame, word: e.target.value.toUpperCase() })}
-                        placeholder="REACT"
+                        placeholder="EXAMPLE"
                         className="bg-gray-700 border-gray-600 text-gray-100 font-mono"
-                        maxLength={10}
+                        maxLength={7}
                         required
                       />
                     </div>
