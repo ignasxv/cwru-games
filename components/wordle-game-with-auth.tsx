@@ -1,21 +1,15 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import WordleGame from "./wordle-game"
-import { loginUser, registerUser, getCurrentUser } from "@/lib/actions/game-actions"
+import { loginUser, registerUser } from "@/lib/actions/game-actions"
 import { useToast } from "@/hooks/use-toast"
-
-interface User {
-  id: number
-  username: string
-  email: string
-  phoneNumber?: string
-}
+import { useAuth } from "@/lib/auth/AuthContext"
 
 interface WordleGameWithAuthProps {
   title: string
@@ -23,26 +17,8 @@ interface WordleGameWithAuthProps {
 }
 
 export default function WordleGameWithAuth({ title, subtitle }: WordleGameWithAuthProps) {
-  const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { user, isLoading, login, logout } = useAuth()
   const { toast } = useToast()
-
-  useEffect(() => {
-    checkCurrentUser()
-  }, [])
-
-  const checkCurrentUser = async () => {
-    try {
-      const currentUser = await getCurrentUser()
-      if (currentUser) {
-        setUser(currentUser)
-      }
-    } catch (error) {
-      console.error("Error checking current user:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -52,8 +28,8 @@ export default function WordleGameWithAuth({ title, subtitle }: WordleGameWithAu
 
     try {
       const result = await loginUser(usernameOrEmail, password)
-      if (result.success && result.user) {
-        setUser(result.user)
+      if (result.success && result.user && result.token) {
+        login(result.token, result.user)
         toast({
           title: "Login successful",
           description: `Welcome back, ${result.user.username}!`,
@@ -94,8 +70,8 @@ export default function WordleGameWithAuth({ title, subtitle }: WordleGameWithAu
 
     try {
       const result = await registerUser(username, email, password, phoneNumber)
-      if (result.success && result.user) {
-        setUser(result.user)
+      if (result.success && result.user && result.token) {
+        login(result.token, result.user)
         toast({
           title: "Registration successful",
           description: `Welcome, ${result.user.username}!`,
@@ -117,14 +93,14 @@ export default function WordleGameWithAuth({ title, subtitle }: WordleGameWithAu
   }
 
   const handleLogout = () => {
-    setUser(null)
+    logout()
     toast({
       title: "Logged out",
       description: "You have been logged out successfully",
     })
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">

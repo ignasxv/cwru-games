@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { users, games, gameplays, gameStats, type NewUser, type NewGame, type NewGameplay } from "@/lib/db/schema";
 import { eq, desc, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { signJWT, verifyJWT, getCurrentUserFromToken } from "@/lib/auth/jwt";
 
 // User actions
 export async function createUser(userData: Omit<NewUser, "id" | "createdAt">) {
@@ -175,7 +176,15 @@ export async function registerUser(username: string, email: string, password: st
       guessDistribution: "{}"
     });
 
-    return { success: true, user: newUser[0] };
+    // Generate JWT token
+    const token = signJWT({
+      userId: newUser[0].id,
+      username: newUser[0].username,
+      email: newUser[0].email,
+      phoneNumber: newUser[0].phoneNumber
+    });
+
+    return { success: true, user: newUser[0], token };
   } catch (error) {
     console.error("Registration error:", error);
     return { success: false, message: "Registration failed" };
@@ -193,11 +202,24 @@ export async function loginUser(usernameOrEmail: string, password: string) {
       return { success: false, message: "User not found" };
     }
 
+    // Check if user has a password set
+    if (!user[0].password) {
+      return { success: false, message: "Account has no password set" };
+    }
+
     // Verify password
     const isValidPassword = await bcrypt.compare(password, user[0].password);
     if (!isValidPassword) {
       return { success: false, message: "Invalid password" };
     }
+
+    // Generate JWT token
+    const token = signJWT({
+      userId: user[0].id,
+      username: user[0].username,
+      email: user[0].email,
+      phoneNumber: user[0].phoneNumber
+    });
 
     return {
       success: true,
@@ -206,7 +228,8 @@ export async function loginUser(usernameOrEmail: string, password: string) {
         username: user[0].username,
         email: user[0].email,
         phoneNumber: user[0].phoneNumber
-      }
+      },
+      token
     };
   } catch (error) {
     console.error("Login error:", error);
@@ -215,7 +238,45 @@ export async function loginUser(usernameOrEmail: string, password: string) {
 }
 
 export async function getCurrentUser() {
-  // Since we're using client-side state management instead of server sessions,
-  // this function returns null. In a real app, you'd implement proper session management.
-  return null;
+  try {
+    const userPayload = await getCurrentUserFromToken();
+    if (!userPayload) return null;
+
+    // Verify the user still exists in the database
+    const [user] = await db.select({
+      id: users.id,
+      username: users.username,
+      email: users.email,
+      phoneNumber: users.phoneNumber
+    }).from(users).where(eq(users.id, userPayload.userId)).limit(1);
+
+    return user || null;
+  } catch (error) {
+    console.error("Error getting current user:", error);
+    return null;
+  }
+}
+
+export async function verifyToken(token: string) {
+  try {
+    const payload = verifyJWT(token);
+    if (!payload) return { success: false, message: "Invalid token" };
+
+    // Verify the user still exists
+    const [user] = await db.select({
+      id: users.id,
+      username: users.username,
+      email: users.email,
+      phoneNumber: users.phoneNumber
+    }).from(users).where(eq(users.id, payload.userId)).limit(1);
+
+    if (!user) {
+      return { success: false, message: "User not found" };
+    }
+
+    return { success: true, user };
+  } catch (error) {
+    console.error("Token verification error:", error);
+    return { success: false, message: "Token verification failed" };
+  }
 }
