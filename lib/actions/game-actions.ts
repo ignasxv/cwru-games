@@ -10,7 +10,10 @@ import { signJWT, verifyJWT, getCurrentUserFromToken } from "@/lib/auth/jwt";
 // User actions
 export async function createUser(userData: Omit<NewUser, "id" | "createdAt">) {
   try {
-    const [user] = await db.insert(users).values(userData).returning();
+    const [user] = await db.insert(users).values({
+      ...userData,
+      createdAt: new Date().toISOString()
+    }).returning();
     return { success: true, user };
   } catch (error) {
     console.error("Error creating user:", error);

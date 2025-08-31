@@ -15,7 +15,7 @@ export async function initializeDatabase() {
     if (gameCount.length === 0) {
       // Insert some sample games
       const sampleGames = [
-        { word: "CWRU", hint: "CWRU abbreviation" },
+        { word: "CWRU", hint: "it's just and abbreviation" },
       ];
 
       await db.insert(schema.games).values(sampleGames);
