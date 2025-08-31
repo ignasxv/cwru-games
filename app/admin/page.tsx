@@ -464,7 +464,8 @@ export default function AdminPage() {
                         <TableHead className="text-gray-300">Username</TableHead>
                         <TableHead className="text-gray-300">Full Name</TableHead>
                         <TableHead className="text-gray-300">Email</TableHead>
-                        <TableHead className="text-gray-300">Joined</TableHead>
+                        <TableHead className="text-gray-300">Phone Number</TableHead>
+                        <TableHead className="text-gray-300">Date Joined</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -479,8 +480,11 @@ export default function AdminPage() {
                           <TableCell className="text-gray-300">
                             {user.email || "-"}
                           </TableCell>
+                          <TableCell className="text-gray-300">
+                            {user.phoneNumber || "-"}
+                          </TableCell>
                           <TableCell className="text-gray-400 text-sm">
-                            {user.createdAt && formatDate(user.createdAt)}
+                            {user.createdAt ? formatDate(user.createdAt) : "-"}
                           </TableCell>
                         </TableRow>
                       ))}

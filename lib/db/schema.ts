@@ -8,7 +8,7 @@ export const users = sqliteTable("users", {
   email: text("email").unique(),
   password: text("password"),
   phoneNumber: text("phone_number"),
-  createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
+  createdAt: text("created_at").default(sql`(datetime('now'))`),
 });
 
 export const games = sqliteTable("games", {

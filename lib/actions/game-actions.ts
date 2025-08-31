@@ -212,12 +212,14 @@ export async function registerUser(username: string, email: string, password: st
       username,
       email,
       password: hashedPassword,
-      phoneNumber
+      phoneNumber,
+      createdAt: new Date().toISOString()
     }).returning({
       id: users.id,
       username: users.username,
       email: users.email,
-      phoneNumber: users.phoneNumber
+      phoneNumber: users.phoneNumber,
+      createdAt: users.createdAt
     });
 
     // Initialize game stats for the new user
