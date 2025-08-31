@@ -4,10 +4,9 @@ import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { InfoIcon, RotateCcw, Trophy, Share2 } from "lucide-react"
+import { InfoIcon, RotateCcw, Trophy, Share2, ChevronLeft, ChevronRight } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { useToast } from "@/hooks/use-toast"
-import { getRandomActiveGame } from "@/lib/actions/game-actions"
+import { getGameForUser, getUserCurrentLevel, getAvailableLevels, getUserCompletedLevels, saveGameplayProgress } from "@/lib/actions/game-actions"
 
 type LetterState = "correct" | "present" | "absent" | "empty"
 
@@ -23,7 +22,6 @@ interface WordleGameProps {
 }
 
 export default function WordleGame({ userId }: WordleGameProps) {
-  const { toast } = useToast()
   const [gameState, setGameState] = useState<GameState>({
     currentGuess: "",
     guesses: [],
@@ -32,23 +30,69 @@ export default function WordleGame({ userId }: WordleGameProps) {
   })
   const [targetWord, setTargetWord] = useState("")
   const [targetHint, setTargetHint] = useState("")
+  const [currentGameId, setCurrentGameId] = useState<number | null>(null)
+  const [currentLevel, setCurrentLevel] = useState(1)
+  const [userMaxLevel, setUserMaxLevel] = useState(1)
+  const [availableLevels, setAvailableLevels] = useState<number[]>([])
+  const [completedLevels, setCompletedLevels] = useState<number[]>([])
   const [showHint, setShowHint] = useState(false)
   const [letterStates, setLetterStates] = useState<Record<string, LetterState>>({})
   const [animatingRow, setAnimatingRow] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isReplayMode, setIsReplayMode] = useState(false)
 
   // Initialize game
   useEffect(() => {
-    startNewGame()
+    initializeGameData()
   }, [])
 
-  const startNewGame = useCallback(async () => {
+  const initializeGameData = useCallback(async () => {
+    if (!userId) return
+    
     setLoading(true)
     try {
-      const randomGame = await getRandomActiveGame()
-      if (randomGame) {
-        setTargetWord(randomGame.word.toUpperCase())
-        setTargetHint(randomGame.hint || "No hint available")
+      // Get user's current level and available levels
+      const [userCurrentLevel, levels, completed] = await Promise.all([
+        getUserCurrentLevel(userId),
+        getAvailableLevels(),
+        getUserCompletedLevels(userId)
+      ])
+      
+      setUserMaxLevel(userCurrentLevel)
+      setAvailableLevels(levels)
+      setCompletedLevels(completed)
+      
+      // Load the game for user's current level
+      await loadGameForLevel(userCurrentLevel)
+    } catch (error) {
+      console.error("Error initializing game data:", error)
+    }
+  }, [userId])
+
+  const loadGameForLevel = useCallback(async (level: number) => {
+    if (!userId) return
+    
+    setLoading(true)
+    try {
+      const { game, isReplay, currentLevel: userLevel, actualLevel, existingGameplay } = await getGameForUser(userId, level)
+      
+      if (!game) {
+        console.error("No games available in database - this should not happen")
+        setLoading(false)
+        return
+      }
+
+      // Use actualLevel if it was returned (indicates the server found a different level)
+      const levelToUse = actualLevel !== undefined ? actualLevel : level
+      setCurrentLevel(levelToUse)
+      setCurrentGameId(game.id)
+      
+      if (isReplay && existingGameplay) {
+        loadPreviousGameplay(game, existingGameplay)
+      } else {
+        // New game for the user
+        setTargetWord(game.word.toUpperCase())
+        setTargetHint(game.hint || "No hint available")
         setGameState({
           currentGuess: "",
           guesses: [],
@@ -58,24 +102,68 @@ export default function WordleGame({ userId }: WordleGameProps) {
         setLetterStates({})
         setShowHint(false)
         setAnimatingRow(null)
-      } else {
-        toast({
-          title: "No games available",
-          description: "No active games found in the database",
-          variant: "destructive",
-        })
+        setIsReplayMode(false)
       }
     } catch (error) {
-      console.error("Error starting new game:", error)
-      toast({
-        title: "Error",
-        description: "Failed to load game. Please try again.",
-        variant: "destructive",
-      })
+      console.error("Error loading game for level:", error)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [userId])
+
+  const startNewGame = useCallback(async () => {
+    await loadGameForLevel(userMaxLevel)
+  }, [loadGameForLevel, userMaxLevel])
+
+  const navigateToLevel = useCallback(async (level: number) => {
+    if (!availableLevels.includes(level)) return
+    await loadGameForLevel(level)
+  }, [loadGameForLevel, availableLevels])
+
+  const goToPreviousLevel = useCallback(() => {
+    const currentIndex = availableLevels.indexOf(currentLevel)
+    if (currentIndex > 0) {
+      const prevLevel = availableLevels[currentIndex - 1]
+      navigateToLevel(prevLevel)
+    }
+  }, [availableLevels, currentLevel, navigateToLevel])
+
+  const goToNextLevel = useCallback(() => {
+    const currentIndex = availableLevels.indexOf(currentLevel)
+    if (currentIndex < availableLevels.length - 1) {
+      const nextLevel = availableLevels[currentIndex + 1]
+      navigateToLevel(nextLevel)
+    }
+  }, [availableLevels, currentLevel, navigateToLevel])
+
+  const loadPreviousGameplay = (game: any, gameplay: any) => {
+    setTargetWord(game.word.toUpperCase())
+    setTargetHint(game.hint || "No hint available")
+    setCurrentGameId(game.id)
+    setIsReplayMode(true)
+    
+    // Parse the guess sequence from the stored gameplay
+    const guesses = JSON.parse(gameplay.guessSequence || "[]")
+    const finalStatus = gameplay.completed 
+      ? (guesses.some((guess: string) => guess.toUpperCase() === game.word.toUpperCase()) ? "won" : "lost")
+      : "playing"
+    
+    setGameState({
+      currentGuess: "",
+      guesses,
+      gameStatus: finalStatus,
+      currentRow: guesses.length,
+    })
+
+    // Reconstruct letter states from the guesses
+    const newLetterStates: Record<string, LetterState> = {}
+    guesses.forEach((guess: string) => {
+      updateLetterStatesFromGuess(guess.toUpperCase(), newLetterStates, game.word.toUpperCase())
+    })
+    setLetterStates(newLetterStates)
+    setShowHint(false)
+    setAnimatingRow(null)
+  }
 
   const getLetterState = (letter: string, position: number, word: string): LetterState => {
     if (targetWord[position] === letter) return "correct"
@@ -101,15 +189,32 @@ export default function WordleGame({ userId }: WordleGameProps) {
     setLetterStates(newStates)
   }
 
-  const submitGuess = useCallback(() => {
-    if (!targetWord) return
+  const updateLetterStatesFromGuess = (guess: string, states: Record<string, LetterState>, word: string) => {
+    for (let i = 0; i < guess.length; i++) {
+      const letter = guess[i]
+      // Create a temporary version of getLetterState for this specific word
+      const getStateForWord = (letter: string, position: number): LetterState => {
+        if (word[position] === letter) return "correct"
+        if (word.includes(letter)) return "present"
+        return "absent"
+      }
+      const state = getStateForWord(letter, i)
+
+      // Only update if current state is worse than new state
+      if (
+        !states[letter] ||
+        (states[letter] === "absent" && state !== "absent") ||
+        (states[letter] === "present" && state === "correct")
+      ) {
+        states[letter] = state
+      }
+    }
+  }
+
+  const submitGuess = useCallback(async () => {
+    if (!targetWord || isReplayMode) return
     
     if (gameState.currentGuess.length !== targetWord.length) {
-      toast({
-        title: "Invalid guess",
-        description: `Please enter a ${targetWord.length}-letter word`,
-        variant: "destructive",
-      })
       setAnimatingRow(gameState.currentRow)
       setTimeout(() => setAnimatingRow(null), 500)
       return
@@ -122,16 +227,15 @@ export default function WordleGame({ userId }: WordleGameProps) {
     setAnimatingRow(gameState.currentRow)
     setTimeout(() => setAnimatingRow(null), 600)
 
-    if (gameState.currentGuess === targetWord) {
+    const isCorrectGuess = gameState.currentGuess === targetWord
+    const isGameComplete = isCorrectGuess || newGuesses.length >= 6
+
+    if (isCorrectGuess) {
       setGameState({
         ...gameState,
         guesses: newGuesses,
         gameStatus: "won",
         currentGuess: "",
-      })
-      toast({
-        title: "🎉 Congratulations!",
-        description: `You guessed "${targetWord}" correctly!`,
       })
     } else if (newGuesses.length >= 6) {
       setGameState({
@@ -139,11 +243,6 @@ export default function WordleGame({ userId }: WordleGameProps) {
         guesses: newGuesses,
         gameStatus: "lost",
         currentGuess: "",
-      })
-      toast({
-        title: "Game Over",
-        description: `The word was "${targetWord}"`,
-        variant: "destructive",
       })
     } else {
       setGameState({
@@ -153,11 +252,32 @@ export default function WordleGame({ userId }: WordleGameProps) {
         currentRow: gameState.currentRow + 1,
       })
     }
-  }, [gameState, targetWord, toast])
+
+    // Save gameplay progress if game is complete and we have necessary data
+    if (isGameComplete && userId && currentGameId) {
+      try {
+        await saveGameplayProgress(
+          userId,
+          currentGameId,
+          newGuesses,
+          true, // completed
+          isCorrectGuess // won
+        )
+        
+        // If user completed their current level, update their progress
+        if (isCorrectGuess && currentLevel === userMaxLevel) {
+          setUserMaxLevel(currentLevel + 1)
+          setCompletedLevels(prev => [...prev, currentLevel])
+        }
+      } catch (error) {
+        console.error("Error saving gameplay:", error)
+      }
+    }
+  }, [gameState, targetWord, isReplayMode, userId, currentGameId])
 
   const handleKeyPress = useCallback(
     (key: string) => {
-      if (gameState.gameStatus !== "playing" || !targetWord) return
+      if (gameState.gameStatus !== "playing" || !targetWord || isReplayMode) return
 
       if (key === "ENTER") {
         submitGuess()
@@ -173,7 +293,7 @@ export default function WordleGame({ userId }: WordleGameProps) {
         }))
       }
     },
-    [gameState, submitGuess, targetWord],
+    [gameState, submitGuess, targetWord, isReplayMode],
   )
 
   // Keyboard event listener
@@ -270,7 +390,7 @@ export default function WordleGame({ userId }: WordleGameProps) {
               key={key}
               className={buttonClass}
               onClick={() => handleKeyPress(key)}
-              disabled={gameState.gameStatus !== "playing"}
+              disabled={gameState.gameStatus !== "playing" || isReplayMode}
             >
               {key === "BACKSPACE" ? "⌫" : key === "ENTER" ? "↵" : key}
             </Button>
@@ -295,10 +415,6 @@ export default function WordleGame({ userId }: WordleGameProps) {
       .join("\n")}`
 
     navigator.clipboard.writeText(text)
-    toast({
-      title: "Results copied!",
-      description: "Share your Wordle results",
-    })
   }
 
   return (
@@ -315,48 +431,88 @@ export default function WordleGame({ userId }: WordleGameProps) {
         {/* Game Content */}
         {!loading && targetWord && (
           <>
-            {/* Action Buttons */}
-            <div className="flex justify-center gap-2 mb-6">
-              <Popover open={showHint} onOpenChange={setShowHint}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700 font-mono"
-                  >
-                    <InfoIcon className="w-4 h-4 mr-1" />
-                    Hint
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-80 bg-gray-800 border-gray-600 text-gray-200">
-                  <div className="space-y-2">
-                    <h4 className="font-semibold font-mono">Hint:</h4>
-                    <p className="text-sm text-gray-300 font-mono">{targetHint}</p>
-                  </div>
-                </PopoverContent>
-              </Popover>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={startNewGame}
-                className="bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700 font-mono"
-              >
-                <RotateCcw className="w-4 h-4 mr-1" />
-                New Game
-              </Button>
-
-              {gameState.gameStatus !== "playing" && (
+            {/* Level Navigation and Actions */}
+            <div className="space-y-3 mb-6">
+              {/* Level indicator with navigation */}
+              <div className="flex justify-center items-center gap-3">
+                {/* Previous level button */}
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={shareResults}
+                  onClick={goToPreviousLevel}
+                  disabled={availableLevels.indexOf(currentLevel) === 0}
                   className="bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700 font-mono"
                 >
-                  <Share2 className="w-4 h-4 mr-1" />
-                  Share
+                  <ChevronLeft className="w-4 h-4" />
                 </Button>
-              )}
+
+                {/* Level indicator */}
+                <Badge variant="outline" className="bg-gray-800 border-gray-600 text-gray-200 font-mono px-4 py-1">
+                  Level {currentLevel}
+                  {completedLevels.includes(currentLevel) && " ✓"}
+                  {currentLevel === userMaxLevel && !completedLevels.includes(currentLevel) && " (Current)"}
+                </Badge>
+
+                {/* Next level button */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToNextLevel}
+                  disabled={availableLevels.indexOf(currentLevel) === availableLevels.length - 1}
+                  className="bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700 font-mono"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+              
+              {/* Action buttons */}
+              <div className="flex justify-center items-center gap-2">
+                {/* Hint button */}
+                <Popover open={showHint} onOpenChange={setShowHint}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700 font-mono"
+                    >
+                      <InfoIcon className="w-4 h-4 mr-1" />
+                      Hint
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 bg-gray-800 border-gray-600 text-gray-200">
+                    <div className="space-y-2">
+                      <h4 className="font-semibold font-mono">Hint:</h4>
+                      <p className="text-sm text-gray-300 font-mono">{targetHint}</p>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+
+                {/* Current level button (only show if not at current level) */}
+                {currentLevel !== userMaxLevel && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={startNewGame}
+                    className="bg-green-800 border-green-600 text-green-200 hover:bg-green-700 font-mono"
+                  >
+                    <RotateCcw className="w-4 h-4 mr-1" />
+                    Current
+                  </Button>
+                )}
+
+                {/* Share button */}
+                {gameState.gameStatus !== "playing" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={shareResults}
+                    className="bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700 font-mono"
+                  >
+                    <Share2 className="w-4 h-4 mr-1" />
+                    Share
+                  </Button>
+                )}
+              </div>
             </div>
 
         {/* Game Status */}
@@ -392,7 +548,10 @@ export default function WordleGame({ userId }: WordleGameProps) {
               Guess {gameState.currentRow + 1}/6
             </Badge>
             <Badge variant="outline" className="bg-gray-800 border-gray-600 text-gray-200 font-mono text-xs">
-              Word: {targetWord.length} letters
+              {targetWord.length} letters
+            </Badge>
+            <Badge variant="outline" className="bg-gray-800 border-gray-600 text-gray-200 font-mono text-xs">
+              Progress: {completedLevels.length}/{availableLevels.length}
             </Badge>
           </div>
         </div>
@@ -402,12 +561,15 @@ export default function WordleGame({ userId }: WordleGameProps) {
         {/* No Games Available State */}
         {!loading && !targetWord && (
           <div className="text-center py-20">
-            <p className="text-gray-300 font-mono mb-4">No active games available</p>
+            <p className="text-gray-300 font-mono mb-2">⚠️ No games found</p>
+            <p className="text-gray-400 font-mono text-sm mb-4">
+              Please contact an administrator to add games to the database.
+            </p>
             <Button
-              onClick={startNewGame}
+              onClick={initializeGameData}
               className="bg-gray-700 hover:bg-gray-600 text-gray-200"
             >
-              Try Again
+              Retry Loading
             </Button>
           </div>
         )}

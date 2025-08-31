@@ -3,7 +3,7 @@
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { users, games, gameplays, gameStats, type NewUser, type NewGame, type NewGameplay } from "@/lib/db/schema";
-import { eq, desc, or } from "drizzle-orm";
+import { eq, desc, or, and, asc, max } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { signJWT, verifyJWT, getCurrentUserFromToken } from "@/lib/auth/jwt";
 
@@ -292,5 +292,188 @@ export async function verifyToken(token: string) {
   } catch (error) {
     console.error("Token verification error:", error);
     return { success: false, message: "Token verification failed" };
+  }
+}
+
+// Check if user has already played a specific game
+export async function getUserGameplay(userId: number, gameId: number) {
+  try {
+    const [gameplay] = await db
+      .select()
+      .from(gameplays)
+      .where(and(eq(gameplays.userId, userId), eq(gameplays.gameId, gameId)))
+      .limit(1);
+    
+    return gameplay || null;
+  } catch (error) {
+    console.error("Error getting user gameplay:", error);
+    return null;
+  }
+}
+
+// Get random game that user hasn't played yet
+export async function getRandomUnplayedGame(userId: number) {
+  try {
+    // Get all active games
+    const activeGames = await db.select().from(games).where(eq(games.active, true));
+    
+    // Get games the user has already played
+    const playedGameIds = await db
+      .select({ gameId: gameplays.gameId })
+      .from(gameplays)
+      .where(eq(gameplays.userId, userId));
+    
+    const playedIds = playedGameIds.map(pg => pg.gameId);
+    
+    // Filter out played games
+    const unplayedGames = activeGames.filter(game => !playedIds.includes(game.id));
+    
+    if (unplayedGames.length === 0) {
+      return null; // All games have been played
+    }
+    
+    // Return random unplayed game
+    const randomIndex = Math.floor(Math.random() * unplayedGames.length);
+    return unplayedGames[randomIndex];
+  } catch (error) {
+    console.error("Error getting random unplayed game:", error);
+    return null;
+  }
+}
+
+// Get user's current level (highest completed level + 1, or 1 if none completed)
+export async function getUserCurrentLevel(userId: number) {
+  try {
+    const result = await db
+      .select({ maxLevel: max(games.level) })
+      .from(gameplays)
+      .leftJoin(games, eq(gameplays.gameId, games.id))
+      .where(and(eq(gameplays.userId, userId), eq(gameplays.completed, true)))
+      .limit(1);
+    
+    const maxCompletedLevel = result[0]?.maxLevel || 0;
+    return maxCompletedLevel + 1;
+  } catch (error) {
+    console.error("Error getting user current level:", error);
+    return 1;
+  }
+}
+
+// Get next available game for user (current level or replay mode)
+export async function getGameForUser(userId: number, requestedLevel?: number) {
+  try {
+    const currentLevel = await getUserCurrentLevel(userId);
+    const targetLevel = requestedLevel || currentLevel;
+    
+    // First, try to get the game for the target level
+    let [game] = await db
+      .select()
+      .from(games)
+      .where(and(eq(games.level, targetLevel), eq(games.active, true)))
+      .limit(1);
+    
+    let actualLevel = targetLevel;
+    
+    // If no game found for target level, try user's current level
+    if (!game && targetLevel !== currentLevel) {
+      [game] = await db
+        .select()
+        .from(games)
+        .where(and(eq(games.level, currentLevel), eq(games.active, true)))
+        .limit(1);
+      actualLevel = currentLevel;
+    }
+    
+    // If still no game, get any available active game (fallback to level 1 or first available)
+    if (!game) {
+      [game] = await db
+        .select()
+        .from(games)
+        .where(eq(games.active, true))
+        .orderBy(asc(games.level))
+        .limit(1);
+      
+      if (game) {
+        actualLevel = game.level;
+      }
+    }
+    
+    if (!game) {
+      return { game: null, isReplay: false, currentLevel, actualLevel: targetLevel };
+    }
+    
+    // Check if user has already played this game
+    const existingGameplay = await getUserGameplay(userId, game.id);
+    const isReplay = !!existingGameplay;
+    
+    return { game, isReplay, currentLevel, actualLevel, existingGameplay };
+  } catch (error) {
+    console.error("Error getting game for user:", error);
+    return { game: null, isReplay: false, currentLevel: 1, actualLevel: requestedLevel || 1 };
+  }
+}
+
+// Get all available levels (for navigation)
+export async function getAvailableLevels() {
+  try {
+    const result = await db
+      .select({ level: games.level })
+      .from(games)
+      .where(eq(games.active, true))
+      .orderBy(asc(games.level));
+    
+    return result.map(r => r.level);
+  } catch (error) {
+    console.error("Error getting available levels:", error);
+    return [];
+  }
+}
+
+// Get user's completed levels
+export async function getUserCompletedLevels(userId: number) {
+  try {
+    const result = await db
+      .select({ level: games.level })
+      .from(gameplays)
+      .leftJoin(games, eq(gameplays.gameId, games.id))
+      .where(and(eq(gameplays.userId, userId), eq(gameplays.completed, true)))
+      .orderBy(asc(games.level));
+    
+    return result.map(r => r.level).filter((level): level is number => level !== null);
+  } catch (error) {
+    console.error("Error getting user completed levels:", error);
+    return [];
+  }
+}
+
+// Save gameplay progress
+export async function saveGameplayProgress(
+  userId: number, 
+  gameId: number, 
+  guesses: string[], 
+  completed: boolean, 
+  won: boolean
+) {
+  try {
+    const numTries = guesses.length;
+    const pointsEarned = won ? Math.max(100 - (numTries - 1) * 10, 10) : 0;
+    const guessSequence = JSON.stringify(guesses);
+
+    const [gameplay] = await db
+      .insert(gameplays)
+      .values({
+        userId,
+        gameId,
+        numTries,
+        pointsEarned,
+        guessSequence,
+        completed
+      })
+      .returning();
+
+    return { success: true, gameplay };
+  } catch (error) {
+    console.error("Error saving gameplay progress:", error);
+    return { success: false, error: "Failed to save gameplay" };
   }
 }

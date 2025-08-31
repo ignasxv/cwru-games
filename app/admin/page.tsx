@@ -46,6 +46,7 @@ export default function AdminPage() {
   const [newGame, setNewGame] = useState({
     word: "",
     hint: "",
+    level: 1,
   });
 
   useEffect(() => {
@@ -92,11 +93,12 @@ export default function AdminPage() {
       const result = await createGame({
         word: newGame.word.toUpperCase(),
         hint: newGame.hint.trim() || undefined,
+        level: newGame.level,
         active: true,
       });
 
       if (result.success) {
-        setNewGame({ word: "", hint: "" });
+        setNewGame({ word: "", hint: "", level: 1 });
         loadData(); // Reload data
         toast({
           title: "Success",
@@ -252,7 +254,7 @@ export default function AdminPage() {
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleCreateGame} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <Label htmlFor="word" className="text-gray-200">Word *</Label>
                       <Input
@@ -263,6 +265,19 @@ export default function AdminPage() {
                         placeholder="REACT"
                         className="bg-gray-700 border-gray-600 text-gray-100 font-mono"
                         maxLength={10}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="level" className="text-gray-200">Level *</Label>
+                      <Input
+                        id="level"
+                        type="number"
+                        value={newGame.level}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewGame({ ...newGame, level: parseInt(e.target.value) || 1 })}
+                        placeholder="1"
+                        className="bg-gray-700 border-gray-600 text-gray-100"
+                        min={1}
                         required
                       />
                     </div>
@@ -304,6 +319,7 @@ export default function AdminPage() {
                   <Table>
                     <TableHeader>
                       <TableRow className="border-gray-700">
+                        <TableHead className="text-gray-300">Level</TableHead>
                         <TableHead className="text-gray-300">Word</TableHead>
                         <TableHead className="text-gray-300">Hint</TableHead>
                         <TableHead className="text-gray-300">Status</TableHead>
@@ -314,6 +330,9 @@ export default function AdminPage() {
                     <TableBody>
                       {games.map((game) => (
                         <TableRow key={game.id} className="border-gray-700">
+                          <TableCell className="font-mono font-semibold text-blue-400">
+                            {game.level}
+                          </TableCell>
                           <TableCell className="font-mono font-semibold text-green-400">
                             {game.word}
                           </TableCell>

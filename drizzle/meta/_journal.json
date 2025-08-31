@@ -15,6 +15,13 @@
       "when": 1756486401919,
       "tag": "0001_even_the_enforcers",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1756666013748,
+      "tag": "0002_square_payback",
+      "breakpoints": true
     }
   ]
 }
