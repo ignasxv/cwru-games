@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Trophy, Star, Users, Target, TrendingUp, Medal, Award, Crown } from "lucide-react";
 import { getGameRankings, getUserStats, getUserRankPosition } from "@/lib/actions/game-actions";
+import Link from "next/link";
 
 interface GameRanking {
   id: number;
@@ -278,6 +279,16 @@ export default function GameStats({ userId, currentGameId, gameStatus, pointsEar
           </CardContent>
         </Card>
       )}
+
+      {/* View Full Leaderboard Button */}
+      <div className="text-center mt-6">
+        <Link href="/rankings">
+          <Button className="bg-yellow-600 hover:bg-yellow-700 text-black font-mono font-semibold px-6 py-2">
+            <Trophy className="w-4 h-4 mr-2" />
+            View Full Leaderboard
+          </Button>
+        </Link>
+      </div>
     </div>
   );
 }
