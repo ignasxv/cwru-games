@@ -535,9 +535,19 @@ export default function WordleGame({ userId }: WordleGameProps) {
               <Trophy className="w-5 h-5 text-yellow-400" />
               <span className="font-semibold text-yellow-400 font-mono">Congratulations!</span>
             </div>
-            <p className="text-sm text-gray-300 font-mono">
+            <p className="text-sm text-gray-300 font-mono mb-3">
               You guessed "{targetWord}" in {gameState.guesses.length} tries!
             </p>
+            {availableLevels.indexOf(currentLevel) < availableLevels.length - 1 && (
+              <Button
+                onClick={goToNextLevel}
+                className="bg-yellow-600 hover:bg-yellow-700 text-black font-mono font-semibold"
+                size="sm"
+              >
+                Next Challenge
+                <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
+            )}
           </Card>
         )}
 
