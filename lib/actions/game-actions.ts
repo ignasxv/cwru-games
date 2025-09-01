@@ -40,6 +40,25 @@ export async function getAllUsers() {
   }
 }
 
+export async function deleteUser(userId: number) {
+  try {
+    // First, delete all associated gameplays
+    await db.delete(gameplays).where(eq(gameplays.userId, userId));
+    
+    // Delete game stats if they exist
+    await db.delete(gameStats).where(eq(gameStats.userId, userId));
+    
+    // Then delete the user
+    await db.delete(users).where(eq(users.id, userId));
+    
+    revalidatePath("/admin");
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting user:", error);
+    return { success: false, error: "Failed to delete user" };
+  }
+}
+
 // Game actions
 export async function createGame(gameData: Omit<NewGame, "id" | "createdAt">) {
   try {

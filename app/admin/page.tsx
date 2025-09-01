@@ -21,6 +21,7 @@ import {
   toggleGameActive, 
   getGameStats,
   deleteGame,
+  deleteUser,
   verifyAdminToken
 } from "@/lib/actions/game-actions";
 import type { Game, User } from "@/lib/db/schema";
@@ -238,8 +239,36 @@ export default function AdminPage() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
+  const handleDeleteUser = async (userId: number, username: string) => {
+    try {
+      const result = await deleteUser(userId);
+      
+      if (result.success) {
+        await loadData();
+        toast({
+          title: "Success",
+          description: `User "${username}" deleted successfully`,
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to delete user",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete user",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const formatDate = (date: string | Date) => {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return dateObj.toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -455,7 +484,7 @@ export default function AdminPage() {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-gray-400 text-sm">
-                            {game.createdAt && formatDate(game.createdAt)}
+                            {game.createdAt && formatDate(game.createdAt as Date | string)}
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
@@ -540,6 +569,7 @@ export default function AdminPage() {
                         <TableHead className="text-gray-300">Email</TableHead>
                         <TableHead className="text-gray-300">Phone Number</TableHead>
                         <TableHead className="text-gray-300">Date Joined</TableHead>
+                        <TableHead className="text-gray-300">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -558,7 +588,46 @@ export default function AdminPage() {
                             {user.phoneNumber || "-"}
                           </TableCell>
                           <TableCell className="text-gray-400 text-sm">
-                            {user.createdAt ? formatDate(user.createdAt) : "-"}
+                            {user.createdAt ? formatDate(user.createdAt as Date | string) : "-"}
+                          </TableCell>
+                          <TableCell>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  className="border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle className="text-red-600">
+                                    Delete User
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription className="text-gray-300">
+                                    Are you sure you want to delete the user "{user.username}"? This will permanently delete all their game data and progress. This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel asChild>
+                                    <Button className="text-gray-400 hover:bg-gray-700">
+                                      Cancel
+                                    </Button>
+                                  </AlertDialogCancel>
+                                  <AlertDialogAction asChild>
+                                    <Button
+                                      variant="destructive"
+                                      onClick={() => handleDeleteUser(user.id, user.username)}
+                                      className="bg-red-600 hover:bg-red-700"
+                                    >
+                                      Delete User
+                                    </Button>
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </TableCell>
                         </TableRow>
                       ))}
