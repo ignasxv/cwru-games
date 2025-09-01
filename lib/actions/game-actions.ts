@@ -12,7 +12,7 @@ export async function createUser(userData: Omit<NewUser, "id" | "createdAt">) {
   try {
     const [user] = await db.insert(users).values({
       ...userData,
-      createdAt: new Date().toISOString()
+      // Remove createdAt - let PostgreSQL handle it with defaultNow()
     }).returning();
     return { success: true, user };
   } catch (error) {
@@ -216,7 +216,7 @@ export async function registerUser(username: string, email: string, password: st
       email,
       password: hashedPassword,
       phoneNumber,
-      createdAt: new Date().toISOString()
+      // Remove createdAt - let PostgreSQL handle it with defaultNow()
     }).returning({
       id: users.id,
       username: users.username,
@@ -579,7 +579,7 @@ export async function createAdmin(username: string, password: string) {
     const [newAdmin] = await db.insert(admins).values({
       username,
       password: hashedPassword,
-      createdAt: new Date().toISOString()
+      // Remove createdAt - let PostgreSQL handle it with defaultNow()
     }).returning({
       id: admins.id,
       username: admins.username,
@@ -668,7 +668,7 @@ export async function getOverallRankings(limit: number = 20) {
         username: users.username,
         fullName: users.fullName,
         totalPoints: sql<number>`sum(${gameplays.pointsEarned})`,
-        gamesCompleted: sql<number>`count(case when ${gameplays.completed} = 1 then 1 end)`,
+        gamesCompleted: sql<number>`count(case when ${gameplays.completed} = true then 1 end)`,
         averageScore: sql<number>`round(avg(${gameplays.pointsEarned}), 1)`,
         bestScore: sql<number>`max(${gameplays.pointsEarned})`
       })
@@ -676,7 +676,7 @@ export async function getOverallRankings(limit: number = 20) {
       .innerJoin(users, eq(gameplays.userId, users.id))
       .where(eq(gameplays.completed, true))
       .groupBy(gameplays.userId)
-      .orderBy(desc(sql`sum(${gameplays.pointsEarned})`), desc(sql`count(case when ${gameplays.completed} = 1 then 1 end)`))
+      .orderBy(desc(sql`sum(${gameplays.pointsEarned})`), desc(sql`count(case when ${gameplays.completed} = true then 1 end)`))
       .limit(limit);
 
     return { success: true, rankings };
@@ -690,12 +690,12 @@ export async function getUserStats(userId: number) {
   try {
     const [userStats] = await db
       .select({
-        totalPoints: sql<number>`sum(${gameplays.pointsEarned})`,
-        gamesCompleted: sql<number>`count(case when ${gameplays.completed} = 1 then 1 end)`,
-        gamesPlayed: sql<number>`count(*)`,
-        averageScore: sql<number>`round(avg(${gameplays.pointsEarned}), 1)`,
-        bestScore: sql<number>`max(${gameplays.pointsEarned})`,
-        winRate: sql<number>`round(count(case when ${gameplays.completed} = 1 then 1 end) * 100.0 / count(*), 1)`
+        totalPoints: sql<number>`coalesce(sum(${gameplays.pointsEarned}), 0)::integer`,
+        gamesCompleted: sql<number>`count(case when ${gameplays.completed} = true then 1 end)::integer`,
+        gamesPlayed: sql<number>`count(*)::integer`,
+        averageScore: sql<number>`case when count(*) > 0 then round(avg(${gameplays.pointsEarned}), 1)::numeric else 0::numeric end`,
+        bestScore: sql<number>`coalesce(max(${gameplays.pointsEarned}), 0)::integer`,
+        winRate: sql<number>`case when count(*) > 0 then round(count(case when ${gameplays.completed} = true then 1 end) * 100.0 / count(*), 1)::numeric else 0::numeric end`
       })
       .from(gameplays)
       .where(eq(gameplays.userId, userId));
@@ -743,7 +743,7 @@ export async function getGameRankingsWithoutWord(limit: number = 20) {
         topScore: sql<number>`max(${gameplays.pointsEarned})`,
         averageScore: sql<number>`round(avg(${gameplays.pointsEarned}), 1)`,
         totalPlayers: sql<number>`count(distinct ${gameplays.userId})`,
-        completions: sql<number>`count(case when ${gameplays.completed} = 1 then 1 end)`
+        completions: sql<number>`count(case when ${gameplays.completed} = true then 1 end)`
       })
       .from(games)
       .leftJoin(gameplays, eq(games.id, gameplays.gameId))

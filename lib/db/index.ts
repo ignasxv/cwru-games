@@ -1,10 +1,16 @@
-import { drizzle } from "drizzle-orm/better-sqlite3";
-import Database from "better-sqlite3";
+import 'dotenv/config';
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 import * as schema from "./schema";
-import path from "path";
 
-const sqlite = new Database(path.join(process.cwd(), "sqlite.db"));
-export const db = drizzle(sqlite, { schema });
+if (!process.env.DATABASE_URL) {
+  throw new Error('DATABASE_URL is not set');
+}
+
+const connectionString = process.env.DATABASE_URL;
+// Disable prefetch as it is not supported for "Transaction" pool mode
+export const client = postgres(connectionString, { prepare: false });
+export const db = drizzle(client, { schema });
 
 // Initialize database with some sample data if empty
 export async function initializeDatabase() {
@@ -22,7 +28,6 @@ export async function initializeDatabase() {
       console.log("Sample games inserted into database");
     }
 
-    // Initialize admin table if it doesn't exist (will be handled by migrations)
     console.log("Database initialization completed");
   } catch (error) {
     console.error("Error initializing database:", error);

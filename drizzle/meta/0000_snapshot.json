@@ -1,69 +1,189 @@
 {
-  "version": "6",
-  "dialect": "sqlite",
-  "id": "76c4c494-5d6a-4c0b-a04a-3f8f20d35641",
+  "id": "09e92d54-0039-4169-8d13-db6edd0e12ff",
   "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
   "tables": {
-    "gameplays": {
-      "name": "gameplays",
+    "public.admins": {
+      "name": "admins",
+      "schema": "",
       "columns": {
         "id": {
           "name": "id",
-          "type": "integer",
+          "type": "serial",
           "primaryKey": true,
-          "notNull": true,
-          "autoincrement": true
+          "notNull": true
+        },
+        "username": {
+          "name": "username",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "password": {
+          "name": "password",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "admins_username_unique": {
+          "name": "admins_username_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "username"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.game_stats": {
+      "name": "game_stats",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
         },
         "user_id": {
           "name": "user_id",
           "type": "integer",
           "primaryKey": false,
+          "notNull": true
+        },
+        "games_played": {
+          "name": "games_played",
+          "type": "integer",
+          "primaryKey": false,
           "notNull": false,
-          "autoincrement": false
+          "default": 0
+        },
+        "games_won": {
+          "name": "games_won",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "current_streak": {
+          "name": "current_streak",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "max_streak": {
+          "name": "max_streak",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "guess_distribution": {
+          "name": "guess_distribution",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{}'"
+        },
+        "last_played_at": {
+          "name": "last_played_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "game_stats_user_id_users_id_fk": {
+          "name": "game_stats_user_id_users_id_fk",
+          "tableFrom": "game_stats",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.gameplays": {
+      "name": "gameplays",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
         },
         "game_id": {
           "name": "game_id",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "num_tries": {
           "name": "num_tries",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "points_earned": {
           "name": "points_earned",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "guess_sequence": {
           "name": "guess_sequence",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "completed": {
           "name": "completed",
-          "type": "integer",
+          "type": "boolean",
           "primaryKey": false,
           "notNull": false,
-          "autoincrement": false,
           "default": false
         },
         "created_at": {
           "name": "created_at",
-          "type": "text",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": false,
-          "autoincrement": false,
-          "default": "(datetime('now'))"
+          "default": "now()"
         }
       },
       "indexes": {},
@@ -97,46 +217,44 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
-    "games": {
+    "public.games": {
       "name": "games",
+      "schema": "",
       "columns": {
         "id": {
           "name": "id",
-          "type": "integer",
+          "type": "serial",
           "primaryKey": true,
-          "notNull": true,
-          "autoincrement": true
+          "notNull": true
         },
         "word": {
           "name": "word",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "hint": {
           "name": "hint",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
-          "type": "text",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": false,
-          "autoincrement": false,
-          "default": "(datetime('now'))"
+          "default": "now()"
         },
         "active": {
           "name": "active",
-          "type": "integer",
+          "type": "boolean",
           "primaryKey": false,
           "notNull": false,
-          "autoincrement": false,
           "default": true
         }
       },
@@ -144,78 +262,91 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
-    "users": {
+    "public.users": {
       "name": "users",
+      "schema": "",
       "columns": {
         "id": {
           "name": "id",
-          "type": "integer",
+          "type": "serial",
           "primaryKey": true,
-          "notNull": true,
-          "autoincrement": true
+          "notNull": true
         },
         "username": {
           "name": "username",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "full_name": {
           "name": "full_name",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "email": {
           "name": "email",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
+        },
+        "password": {
+          "name": "password",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "phone_number": {
+          "name": "phone_number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
-          "type": "text",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": false,
-          "autoincrement": false,
-          "default": "(datetime('now'))"
+          "default": "now()"
         }
       },
-      "indexes": {
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
         "users_username_unique": {
           "name": "users_username_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "username"
-          ],
-          "isUnique": true
+          ]
         },
         "users_email_unique": {
           "name": "users_email_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "email"
-          ],
-          "isUnique": true
+          ]
         }
       },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     }
   },
-  "views": {},
   "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
   "_meta": {
+    "columns": {},
     "schemas": {},
-    "tables": {},
-    "columns": {}
-  },
-  "internal": {
-    "indexes": {}
+    "tables": {}
   }
 }

@@ -174,7 +174,7 @@ export default function GameStats({ userId, currentGameId, gameStatus, pointsEar
             <div className="grid grid-cols-3 gap-2 text-center">
               <div>
                 <div className="text-lg font-bold text-blue-400 font-mono">
-                  {userStats.averageScore?.toFixed(1) || '0.0'}
+                  {userStats.averageScore && typeof userStats.averageScore === 'number' ? userStats.averageScore.toFixed(1) : '0.0'}
                 </div>
                 <div className="text-xs text-gray-400 font-mono">Avg Score</div>
               </div>
@@ -188,7 +188,7 @@ export default function GameStats({ userId, currentGameId, gameStatus, pointsEar
 
               <div>
                 <div className="text-lg font-bold text-orange-400 font-mono">
-                  {userStats.winRate?.toFixed(1) || '0.0'}%
+                  {userStats.winRate && typeof userStats.winRate === 'number' ? userStats.winRate.toFixed(1) : '0.0'}%
                 </div>
                 <div className="text-xs text-gray-400 font-mono">Win Rate</div>
               </div>

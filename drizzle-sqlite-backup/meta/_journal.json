@@ -1,0 +1,41 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1756478558366,
+      "tag": "0000_worried_madame_hydra",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1756486401919,
+      "tag": "0001_even_the_enforcers",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1756666013748,
+      "tag": "0002_square_payback",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1756670179178,
+      "tag": "0003_cynical_amazoness",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1756671229303,
+      "tag": "0004_curvy_morbius",
+      "breakpoints": true
+    }
+  ]
+}
