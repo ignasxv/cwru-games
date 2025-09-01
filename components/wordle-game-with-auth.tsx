@@ -113,8 +113,8 @@ export default function WordleGameWithAuth() {
       <div className="font-mono min-h-screen bg-gradient-to-br from-gray-800  to-gray-900 flex items-center justify-center px-4">
         <Card className="w-full max-w-md bg-gray-900/90 border-gray-800">
           <CardHeader className="text-center">
-        <CardTitle className="text-2xl font-bold font-mono text-yellow-400">ΣN Games</CardTitle>
-        <CardDescription className="text-gray-300">Immerse yourself in CWRU with Sigma Nu games</CardDescription>
+        <CardTitle className="text-2xl font-bold font-mono text-yellow-400">CWRU Games</CardTitle>
+        <CardDescription className="text-gray-300">campus-specific games</CardDescription>
           </CardHeader>
           <CardContent>
         <Tabs defaultValue="login" className="w-full">
@@ -131,7 +131,7 @@ export default function WordleGameWithAuth() {
               id="usernameOrEmail"
               name="usernameOrEmail"
               type="text"
-              placeholder="enter username or email (will convert to lowercase)"
+              placeholder="enter username or email"
               required
               className="bg-gray-800 border-gray-700 text-gray-200"
               onChange={(e) => {
@@ -226,7 +226,7 @@ export default function WordleGameWithAuth() {
         <span className="text-sm text-gray-400 font-mono">👋 Hi, {user.username}!</span>
         
         <div className="flex items-center gap-2">
-          <h1 className="text-lg font-bold text-yellow-400 font-mono">ΣN games</h1>
+          <h1 className="text-lg font-bold text-yellow-400 font-mono">CWRWORDLE</h1>
           <Link href="/rankings">
             <Button 
               variant="ghost" 

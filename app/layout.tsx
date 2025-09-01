@@ -8,7 +8,7 @@ import { AuthProvider } from "@/lib/auth/AuthContext"
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Sigma Nu Games',
+  title: 'CWRU Games',
   description: 'A Wordle game for Case Western Reserve University',
 }
 
