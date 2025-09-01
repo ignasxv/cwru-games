@@ -675,7 +675,7 @@ export async function getOverallRankings(limit: number = 20) {
       .from(gameplays)
       .innerJoin(users, eq(gameplays.userId, users.id))
       .where(eq(gameplays.completed, true))
-      .groupBy(gameplays.userId)
+      .groupBy(gameplays.userId, users.username, users.fullName)
       .orderBy(desc(sql`sum(${gameplays.pointsEarned})`), desc(sql`count(case when ${gameplays.completed} = true then 1 end)`))
       .limit(limit);
 
@@ -748,7 +748,7 @@ export async function getGameRankingsWithoutWord(limit: number = 20) {
       .from(games)
       .leftJoin(gameplays, eq(games.id, gameplays.gameId))
       .where(eq(games.active, true))
-      .groupBy(games.id)
+      .groupBy(games.id, games.hint, games.createdAt)
       .orderBy(desc(games.createdAt))
       .limit(limit);
 
