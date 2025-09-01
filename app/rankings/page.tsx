@@ -23,7 +23,7 @@ interface OverallRanking {
 interface GameRankingWithoutWord {
   gameId: number;
   hint: string | null;
-  createdAt: string | null;
+  createdAt: Date | string | null;
   topScore: number;
   averageScore: number;
   totalPlayers: number;
@@ -178,7 +178,7 @@ export default function RankingsPage() {
                           {player.gamesCompleted || 0}
                         </TableCell>
                         <TableCell className="text-right font-mono text-gray-300">
-                          {player.averageScore?.toFixed(1) || '0.0'}
+                          {player.averageScore && typeof player.averageScore === 'number' ? player.averageScore.toFixed(1) : '0.0'}
                         </TableCell>
                         <TableCell className="text-right font-mono text-gray-300">
                           {player.bestScore || 0}
@@ -239,7 +239,7 @@ export default function RankingsPage() {
                           {game.topScore || 0}
                         </TableCell>
                         <TableCell className="text-right font-mono text-gray-300">
-                          {game.averageScore?.toFixed(1) || '0.0'}
+                          {game.averageScore && typeof game.averageScore === 'number' ? game.averageScore.toFixed(1) : '0.0'}
                         </TableCell>
                         <TableCell className="text-right font-mono text-gray-300">
                           <div className="flex items-center justify-end gap-1">
