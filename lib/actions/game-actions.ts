@@ -59,6 +59,21 @@ export async function deleteUser(userId: number) {
   }
 }
 
+export async function updateUserPhoneNumber(userId: number, phoneNumber: string) {
+  try {
+    const [updatedUser] = await db
+      .update(users)
+      .set({ phoneNumber })
+      .where(eq(users.id, userId))
+      .returning();
+
+    return { success: true, user: updatedUser };
+  } catch (error) {
+    console.error("Error updating phone number:", error);
+    return { success: false, error: "Failed to update phone number" };
+  }
+}
+
 // Game actions
 export async function createGame(gameData: Omit<NewGame, "id" | "createdAt">) {
   try {

@@ -4,10 +4,14 @@ import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { InfoIcon, RotateCcw, Trophy, Share2, ChevronLeft, ChevronRight } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { InfoIcon, RotateCcw, Trophy, Share2, ChevronLeft, ChevronRight, Gift } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { getGameForUser, getUserCurrentLevel, getAvailableLevels, getUserCompletedLevels, saveGameplayProgress } from "@/lib/actions/game-actions"
+import { getGameForUser, getUserCurrentLevel, getAvailableLevels, getUserCompletedLevels, saveGameplayProgress, updateUserPhoneNumber } from "@/lib/actions/game-actions"
 import GameStats from "@/components/game-stats"
+import { useAuth } from "@/lib/auth/AuthContext"
 
 type LetterState = "correct" | "present" | "absent" | "empty"
 
@@ -23,6 +27,7 @@ interface WordleGameProps {
 }
 
 export default function WordleGame({ userId }: WordleGameProps) {
+  const { user, refreshUser } = useAuth()
   const [gameState, setGameState] = useState<GameState>({
     currentGuess: "",
     guesses: [],
@@ -42,6 +47,9 @@ export default function WordleGame({ userId }: WordleGameProps) {
   const [loading, setLoading] = useState(true)
   const [isReplayMode, setIsReplayMode] = useState(false)
   const [currentGamePoints, setCurrentGamePoints] = useState<number>(0)
+  const [showPhoneDialog, setShowPhoneDialog] = useState(false)
+  const [phoneNumber, setPhoneNumber] = useState("")
+  const [isSubmittingPhone, setIsSubmittingPhone] = useState(false)
 
   // Initialize game
   useEffect(() => {
@@ -130,6 +138,25 @@ export default function WordleGame({ userId }: WordleGameProps) {
       navigateToLevel(prevLevel)
     }
   }, [availableLevels, currentLevel, navigateToLevel])
+
+  const handlePhoneSubmit = useCallback(async () => {
+    if (!userId || !phoneNumber.trim()) return
+
+    setIsSubmittingPhone(true)
+    try {
+      const result = await updateUserPhoneNumber(userId, phoneNumber.trim())
+      if (result.success && refreshUser) {
+        // Refresh user data from server to get updated phone number
+        await refreshUser()
+        setShowPhoneDialog(false)
+        setPhoneNumber("")
+      }
+    } catch (error) {
+      console.error("Error updating phone number:", error)
+    } finally {
+      setIsSubmittingPhone(false)
+    }
+  }, [userId, phoneNumber, refreshUser])
 
   const goToNextLevel = useCallback(() => {
     const currentIndex = availableLevels.indexOf(currentLevel)
@@ -278,6 +305,11 @@ export default function WordleGame({ userId }: WordleGameProps) {
         if (isCorrectGuess && currentLevel === userMaxLevel) {
           setUserMaxLevel(currentLevel + 1)
           setCompletedLevels(prev => [...prev, currentLevel])
+        }
+
+        // Show phone number dialog if user won and doesn't have phone number
+        if (isCorrectGuess && user && (!user.phoneNumber || user.phoneNumber.trim() === "")) {
+          setShowPhoneDialog(true)
         }
       } catch (error) {
         console.error("Error saving gameplay:", error)
@@ -607,6 +639,57 @@ export default function WordleGame({ userId }: WordleGameProps) {
           </div>
         )}
       </div>
+
+      {/* Phone Number Dialog */}
+      <Dialog open={showPhoneDialog} onOpenChange={setShowPhoneDialog}>
+        <DialogContent className="sm:max-w-md bg-gray-800 border-gray-700">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-yellow-400 font-mono">
+              <Gift className="h-5 w-5" />
+              Congratulations! You're eligible for prizes!
+            </DialogTitle>
+            <DialogDescription className="text-gray-300 font-mono">
+              Enter your phone number to contact you about the prize and rewards!
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="phoneNumber" className="text-gray-200 font-mono">
+                Phone Number
+              </Label>
+              <Input
+                id="phoneNumber"
+                type="tel"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                placeholder="Enter your phone number"
+                className="bg-gray-700 border-gray-600 text-gray-100 font-mono"
+                disabled={isSubmittingPhone}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowPhoneDialog(false)
+                setPhoneNumber("")
+              }}
+              disabled={isSubmittingPhone}
+              className="bg-gray-700 border-gray-600 text-gray-200 hover:bg-gray-600 font-mono"
+            >
+              Skip
+            </Button>
+            <Button
+              onClick={handlePhoneSubmit}
+              disabled={!phoneNumber.trim() || isSubmittingPhone}
+              className="bg-yellow-600 hover:bg-yellow-700  font-mono font-semibold"
+            >
+              {isSubmittingPhone ? "Saving..." : "Submit"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
