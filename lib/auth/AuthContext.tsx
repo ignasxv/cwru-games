@@ -60,10 +60,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const login = (newToken: string, newUser: AuthUser) => {
-    setUser(newUser);
-    setToken(newToken);
-    saveAuthToStorage(newToken, newUser);
+  const login = (token: string, user: AuthUser) => {
+    setUser(user);
+    setToken(token);
+    saveAuthToStorage(token, user);
   };
 
   const logout = () => {

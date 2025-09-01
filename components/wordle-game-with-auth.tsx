@@ -20,7 +20,7 @@ export default function WordleGameWithAuth() {
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
-    const usernameOrEmail = formData.get('usernameOrEmail') as string
+    const usernameOrEmail = (formData.get('usernameOrEmail') as string).toLowerCase().trim()
     const password = formData.get('password') as string
 
     try {
@@ -50,7 +50,7 @@ export default function WordleGameWithAuth() {
   const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
-    const username = formData.get('username') as string
+    const username = (formData.get('username') as string).toLowerCase().trim()
     const email = formData.get('email') as string
     const password = formData.get('password') as string
     const confirmPassword = formData.get('confirmPassword') as string
@@ -131,9 +131,13 @@ export default function WordleGameWithAuth() {
               id="usernameOrEmail"
               name="usernameOrEmail"
               type="text"
-              placeholder="Enter username or email"
+              placeholder="enter username or email (will convert to lowercase)"
               required
               className="bg-gray-800 border-gray-700 text-gray-200"
+              onChange={(e) => {
+                // Automatically normalize username input to lowercase
+                e.target.value = e.target.value.toLowerCase().trim()
+              }}
             />
           </div>
           <div className="space-y-2">
@@ -161,9 +165,13 @@ export default function WordleGameWithAuth() {
               id="username"
               name="username"
               type="text"
-              placeholder="Choose a username"
+              placeholder="choose a username (will convert to lowercase)"
               required
               className="bg-gray-800 border-gray-700 text-gray-200"
+              onChange={(e) => {
+                // Automatically normalize username input to lowercase
+                e.target.value = e.target.value.toLowerCase().trim()
+              }}
             />
           </div>
           <div className="space-y-2">

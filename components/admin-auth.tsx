@@ -130,7 +130,12 @@ export default function AdminAuth({ onAuthenticated }: AdminAuthProps) {
   }
 
   const handleInputChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({ ...prev, [field]: e.target.value }))
+    let value = e.target.value
+    // Normalize username to lowercase automatically
+    if (field === 'username') {
+      value = value.toLowerCase().trim()
+    }
+    setFormData(prev => ({ ...prev, [field]: value }))
   }
 
   if (isLoading) {

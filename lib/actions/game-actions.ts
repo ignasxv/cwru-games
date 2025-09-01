@@ -8,26 +8,52 @@ import { revalidatePath } from "next/cache";
 import { signJWT, verifyJWT, getCurrentUserFromToken } from "@/lib/auth/jwt";
 
 // User actions
-export async function createUser(userData: Omit<NewUser, "id" | "createdAt">) {
+export async function createUser(username: string, password: string, email?: string) {
+  // Normalize username to lowercase
+  const normalizedUsername = username.toLowerCase().trim()
+  
   try {
-    const [user] = await db.insert(users).values({
-      ...userData,
-      // Remove createdAt - let PostgreSQL handle it with defaultNow()
-    }).returning();
-    return { success: true, user };
+    // Check if user already exists
+    const existingUser = await db.select()
+      .from(users)
+      .where(eq(users.username, normalizedUsername))
+      .limit(1)
+
+    if (existingUser.length > 0) {
+      return { success: false, message: "User already exists" }
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 12)
+
+    // Create new user with normalized username
+    const [newUser] = await db.insert(users).values({
+      username: normalizedUsername,
+      password: hashedPassword,
+      email: email || null
+    }).returning()
+
+    return { success: true, user: newUser }
   } catch (error) {
-    console.error("Error creating user:", error);
-    return { success: false, error: "Failed to create user" };
+    console.error("Error creating user:", error)
+    return { success: false, message: "Failed to create user" }
   }
 }
 
 export async function getUserByUsername(username: string) {
+  // Normalize username to lowercase for lookup
+  const normalizedUsername = username.toLowerCase().trim()
+  
   try {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user || null;
+    const user = await db.select()
+      .from(users)
+      .where(eq(users.username, normalizedUsername))
+      .limit(1)
+
+    return user[0] || null
   } catch (error) {
-    console.error("Error getting user:", error);
-    return null;
+    console.error("Error getting user by username:", error)
+    return null
   }
 }
 
@@ -232,9 +258,12 @@ export async function getGameStats() {
 // Authentication functions
 export async function registerUser(username: string, email: string, password: string, phoneNumber?: string) {
   try {
+    // Normalize username to lowercase
+    const normalizedUsername = username.toLowerCase().trim()
+    
     // Check if username or email already exists
     const existingUser = await db.select().from(users).where(
-      or(eq(users.username, username), eq(users.email, email))
+      or(eq(users.username, normalizedUsername), eq(users.email, email))
     ).limit(1);
 
     if (existingUser.length > 0) {
@@ -246,7 +275,7 @@ export async function registerUser(username: string, email: string, password: st
 
     // Create user
     const newUser = await db.insert(users).values({
-      username,
+      username: normalizedUsername,
       email,
       password: hashedPassword,
       phoneNumber,
@@ -286,9 +315,12 @@ export async function registerUser(username: string, email: string, password: st
 
 export async function loginUser(usernameOrEmail: string, password: string) {
   try {
+    // Normalize input for consistent searching (lowercase and trim)
+    const normalizedInput = usernameOrEmail.toLowerCase().trim()
+    
     // Find user by username or email
     const user = await db.select().from(users).where(
-      or(eq(users.username, usernameOrEmail), eq(users.email, usernameOrEmail))
+      or(eq(users.username, normalizedInput), eq(users.email, normalizedInput))
     ).limit(1);
 
     if (user.length === 0) {
@@ -600,6 +632,9 @@ export async function checkIfAdminExists() {
 
 export async function createAdmin(username: string, password: string) {
   try {
+    // Normalize admin username to lowercase
+    const normalizedUsername = username.toLowerCase().trim()
+    
     // Check if any admin already exists
     const existingAdmins = await db.select().from(admins).limit(1);
     if (existingAdmins.length > 0) {
@@ -609,9 +644,9 @@ export async function createAdmin(username: string, password: string) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Create admin
+    // Create admin with normalized username
     const [newAdmin] = await db.insert(admins).values({
-      username,
+      username: normalizedUsername,
       password: hashedPassword,
       // Remove createdAt - let PostgreSQL handle it with defaultNow()
     }).returning({
@@ -629,7 +664,10 @@ export async function createAdmin(username: string, password: string) {
 
 export async function loginAdmin(username: string, password: string) {
   try {
-    const [admin] = await db.select().from(admins).where(eq(admins.username, username));
+    // Normalize admin username to lowercase
+    const normalizedUsername = username.toLowerCase().trim()
+    
+    const [admin] = await db.select().from(admins).where(eq(admins.username, normalizedUsername));
 
     if (!admin) {
       return { success: false, message: "Invalid credentials" };

@@ -596,20 +596,6 @@ export default function WordleGame({ userId }: WordleGameProps) {
         {/* Keyboard */}
         <div className="space-y-1 mb-4 w-full">{renderKeyboard()}</div>
 
-        {/* Game Stats */}
-        <div className="text-center">
-          <div className="flex justify-center gap-3">
-            <Badge variant="outline" className="bg-gray-800 border-gray-600 text-gray-200 font-mono text-xs">
-              Guess {gameState.currentRow + 1}/6
-            </Badge>
-            <Badge variant="outline" className="bg-gray-800 border-gray-600 text-gray-200 font-mono text-xs">
-              {targetWord.length} letters
-            </Badge>
-            <Badge variant="outline" className="bg-gray-800 border-gray-600 text-gray-200 font-mono text-xs">
-              Progress: {completedLevels.length}/{availableLevels.length}
-            </Badge>
-          </div>
-        </div>
 
         {/* Game Stats and Rankings */}
         {userId && (
