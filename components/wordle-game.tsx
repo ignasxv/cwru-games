@@ -50,6 +50,7 @@ export default function WordleGame({ userId }: WordleGameProps) {
   const [showPhoneDialog, setShowPhoneDialog] = useState(false)
   const [phoneNumber, setPhoneNumber] = useState("")
   const [isSubmittingPhone, setIsSubmittingPhone] = useState(false)
+  const [statsRefreshTrigger, setStatsRefreshTrigger] = useState(0)
 
   // Initialize game
   useEffect(() => {
@@ -300,6 +301,12 @@ export default function WordleGame({ userId }: WordleGameProps) {
           true, // completed
           isCorrectGuess // won
         )
+        
+        // Refresh the game stats/leaderboard to show updated results
+        // Add a small delay to ensure database is updated
+        setTimeout(() => {
+          setStatsRefreshTrigger(prev => prev + 1)
+        }, 500)
         
         // If user completed their current level, update their progress
         if (isCorrectGuess && currentLevel === userMaxLevel) {
@@ -604,6 +611,7 @@ export default function WordleGame({ userId }: WordleGameProps) {
             currentGameId={currentGameId}
             gameStatus={gameState.gameStatus}
             pointsEarned={currentGamePoints}
+            refreshTrigger={statsRefreshTrigger}
           />
         )}
         </>

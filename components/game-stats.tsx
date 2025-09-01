@@ -17,7 +17,7 @@ interface GameRanking {
   pointsEarned: number | null;
   numTries: number | null;
   completed: boolean | null;
-  createdAt: string | null;
+  createdAt: Date | null;
 }
 
 interface UserStats {
@@ -34,14 +34,16 @@ interface GameStatsProps {
   currentGameId: number | null;
   gameStatus: "playing" | "won" | "lost";
   pointsEarned?: number;
+  refreshTrigger?: number; // Add trigger to force refresh
 }
 
-export default function GameStats({ userId, currentGameId, gameStatus, pointsEarned = 0 }: GameStatsProps) {
+export default function GameStats({ userId, currentGameId, gameStatus, pointsEarned = 0, refreshTrigger }: GameStatsProps) {
   const [gameRankings, setGameRankings] = useState<GameRanking[]>([]);
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [userRank, setUserRank] = useState<number | null>(null);
   const [totalPlayers, setTotalPlayers] = useState<number>(0);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const sectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -49,6 +51,14 @@ export default function GameStats({ userId, currentGameId, gameStatus, pointsEar
       loadGameData();
     }
   }, [currentGameId, userId]);
+
+  // Refresh when refreshTrigger changes (after game completion)
+  useEffect(() => {
+    if (refreshTrigger && currentGameId) {
+      setRefreshing(true);
+      loadGameData().finally(() => setRefreshing(false));
+    }
+  }, [refreshTrigger, currentGameId, userId]);
 
   // Auto-scroll to stats after game completion
   useEffect(() => {
@@ -213,6 +223,9 @@ export default function GameStats({ userId, currentGameId, gameStatus, pointsEar
             <CardTitle className="flex items-center gap-2 text-yellow-400 font-mono text-lg">
               <Users className="h-5 w-5" />
               Current Game Leaderboard
+              {refreshing && (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-400"></div>
+              )}
             </CardTitle>
             <CardDescription className="text-gray-400 font-mono">
               Top players for this game
