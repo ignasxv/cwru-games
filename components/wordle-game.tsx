@@ -419,7 +419,7 @@ export default function WordleGame({ userId }: WordleGameProps) {
     const rows = [
       ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
       ["A", "S", "D", "F", "G", "H", "J", "K", "L"],
-      ["ENTER", "Z", "X", "C", "V", "B", "N", "M", "BACKSPACE"],
+      ["Z", "X", "C", "V", "B", "N", "M", "BACKSPACE", "ENTER"],
     ]
 
     return rows.map((row, i) => (
@@ -427,14 +427,18 @@ export default function WordleGame({ userId }: WordleGameProps) {
         {row.map((key) => {
           const state = letterStates[key] || "empty"
           const isSpecial = key === "ENTER" || key === "BACKSPACE"
+          const isEnter = key === "ENTER"
+          const isBackspace = key === "BACKSPACE"
 
           const buttonClass = `
-            h-11 font-semibold rounded text-xs transition-all duration-200 font-mono flex items-center justify-center
-            ${isSpecial ? "px-2 min-w-[54px]" : "flex-1 min-w-[28px] max-w-[34px]"}
-            ${state === "correct" ? "bg-green-500 text-black hover:bg-green-600" : ""}
-            ${state === "present" ? "bg-yellow-500 text-black hover:bg-yellow-600" : ""}
-            ${state === "absent" ? "bg-gray-600 text-gray-200 hover:bg-gray-500" : ""}
-            ${state === "empty" ? "bg-gray-700 text-gray-200 hover:bg-gray-600 border border-gray-600" : ""}
+            h-11 font-semibold rounded transition-all duration-200 font-mono flex items-center justify-center
+            ${isEnter ? "px-2 min-w-[54px] bg-green-600 text-white hover:bg-green-700 text-xs" : ""}
+            ${isBackspace ? "px-1 min-w-[36px] bg-red-400 text-white hover:bg-red-500 text-xs" : ""}
+            ${!isSpecial ? "flex-1 min-w-[28px] max-w-[34px] text-xs" : ""}
+            ${!isEnter && !isBackspace && state === "correct" ? "bg-green-500 text-black hover:bg-green-600" : ""}
+            ${!isEnter && !isBackspace && state === "present" ? "bg-yellow-500 text-black hover:bg-yellow-600" : ""}
+            ${!isEnter && !isBackspace && state === "absent" ? "bg-gray-600 text-gray-200 hover:bg-gray-500" : ""}
+            ${!isEnter && !isBackspace && state === "empty" && !isSpecial ? "bg-gray-700 text-gray-200 hover:bg-gray-600 border border-gray-600" : ""}
           `
 
           return (
@@ -444,7 +448,7 @@ export default function WordleGame({ userId }: WordleGameProps) {
               onClick={() => handleKeyPress(key)}
               disabled={gameState.gameStatus !== "playing" || isReplayMode}
             >
-              {key === "BACKSPACE" ? "⌫" : key === "ENTER" ? "↵" : key}
+              {key === "BACKSPACE" ? "⌫" : key === "ENTER" ? "ENTER" : key}
             </Button>
           )
         })}
