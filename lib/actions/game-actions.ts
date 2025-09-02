@@ -587,7 +587,7 @@ export async function getUserCompletedLevels(userId: number) {
   }
 }
 
-// Save gameplay progress
+// Save or update gameplay progress
 export async function saveGameplayProgress(
   userId: number, 
   gameId: number, 
@@ -600,17 +600,40 @@ export async function saveGameplayProgress(
     const pointsEarned = won ? Math.max(100 - (numTries - 1) * 10, 10) : 0;
     const guessSequence = JSON.stringify(guesses);
 
-    const [gameplay] = await db
-      .insert(gameplays)
-      .values({
-        userId,
-        gameId,
-        numTries,
-        pointsEarned,
-        guessSequence,
-        completed
-      })
-      .returning();
+    // Check if gameplay already exists for this user and game
+    const existingGameplay = await db
+      .select()
+      .from(gameplays)
+      .where(and(eq(gameplays.userId, userId), eq(gameplays.gameId, gameId)))
+      .limit(1);
+
+    let gameplay;
+    if (existingGameplay.length > 0) {
+      // Update existing gameplay
+      [gameplay] = await db
+        .update(gameplays)
+        .set({
+          numTries,
+          pointsEarned,
+          guessSequence,
+          completed
+        })
+        .where(eq(gameplays.id, existingGameplay[0].id))
+        .returning();
+    } else {
+      // Insert new gameplay
+      [gameplay] = await db
+        .insert(gameplays)
+        .values({
+          userId,
+          gameId,
+          numTries,
+          pointsEarned,
+          guessSequence,
+          completed
+        })
+        .returning();
+    }
 
     return { success: true, gameplay };
   } catch (error) {

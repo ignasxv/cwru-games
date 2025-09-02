@@ -171,13 +171,19 @@ export default function WordleGame({ userId }: WordleGameProps) {
     setTargetWord(game.word.toUpperCase())
     setTargetHint(game.hint || "No hint available")
     setCurrentGameId(game.id)
-    setIsReplayMode(true)
     
     // Parse the guess sequence from the stored gameplay
     const guesses = JSON.parse(gameplay.guessSequence || "[]")
-    const finalStatus = gameplay.completed 
-      ? (guesses.some((guess: string) => guess.toUpperCase() === game.word.toUpperCase()) ? "won" : "lost")
-      : "playing"
+    
+    // Determine game status
+    let finalStatus: "playing" | "won" | "lost" = "playing"
+    if (gameplay.completed) {
+      finalStatus = guesses.some((guess: string) => guess.toUpperCase() === game.word.toUpperCase()) ? "won" : "lost"
+      setIsReplayMode(true) // Only set replay mode for completed games
+    } else {
+      // Game is still in progress, don't set replay mode
+      setIsReplayMode(false)
+    }
     
     setGameState({
       currentGuess: "",
@@ -194,6 +200,13 @@ export default function WordleGame({ userId }: WordleGameProps) {
     setLetterStates(newLetterStates)
     setShowHint(false)
     setAnimatingRow(null)
+    
+    // Set points if game was completed and won
+    if (gameplay.completed && finalStatus === "won") {
+      setCurrentGamePoints(gameplay.pointsEarned || 0)
+    } else {
+      setCurrentGamePoints(0)
+    }
   }
 
   const getLetterState = (letter: string, position: number, word: string): LetterState => {
@@ -291,32 +304,34 @@ export default function WordleGame({ userId }: WordleGameProps) {
       })
     }
 
-    // Save gameplay progress if game is complete and we have necessary data
-    if (isGameComplete && userId && currentGameId) {
+    // Save gameplay progress after EVERY guess (to prevent refresh cheating)
+    if (userId && currentGameId) {
       try {
         await saveGameplayProgress(
           userId,
           currentGameId,
           newGuesses,
-          true, // completed
-          isCorrectGuess // won
+          isGameComplete, // completed only if game is actually done
+          isCorrectGuess // won only if they got it right
         )
-        
-        // Refresh the game stats/leaderboard to show updated results
-        // Add a small delay to ensure database is updated
-        setTimeout(() => {
-          setStatsRefreshTrigger(prev => prev + 1)
-        }, 500)
-        
-        // If user completed their current level, update their progress
-        if (isCorrectGuess && currentLevel === userMaxLevel) {
-          setUserMaxLevel(currentLevel + 1)
-          setCompletedLevels(prev => [...prev, currentLevel])
-        }
 
-        // Show phone number dialog if user won and doesn't have phone number
-        if (isCorrectGuess && user && (!user.phoneNumber || user.phoneNumber.trim() === "")) {
-          setShowPhoneDialog(true)
+        // Only do completion actions if game is actually complete
+        if (isGameComplete) {
+          // Refresh the game stats/leaderboard to show updated results
+          setTimeout(() => {
+            setStatsRefreshTrigger(prev => prev + 1)
+          }, 500)
+          
+          // If user completed their current level, update their progress
+          if (isCorrectGuess && currentLevel === userMaxLevel) {
+            setUserMaxLevel(currentLevel + 1)
+            setCompletedLevels(prev => [...prev, currentLevel])
+          }
+
+          // Show phone number dialog if user won and doesn't have phone number
+          if (isCorrectGuess && user && (!user.phoneNumber || user.phoneNumber.trim() === "")) {
+            setShowPhoneDialog(true)
+          }
         }
       } catch (error) {
         console.error("Error saving gameplay:", error)
