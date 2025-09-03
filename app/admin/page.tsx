@@ -430,7 +430,7 @@ export default function AdminPage() {
                   <Button 
                     type="submit" 
                     disabled={isSubmitting}
-                    className="bg-green-600 hover:bg-green-700"
+                    className="bg-yellow-400 hover:bg-yellow-600"
                   >
                     {isSubmitting ? "Creating..." : "Create Game"}
                   </Button>

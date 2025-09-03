@@ -158,7 +158,7 @@ export default function AdminAuth({ onAuthenticated }: AdminAuthProps) {
       <Card className="w-full max-w-md bg-gray-800 border-gray-700">
         <CardHeader className="space-y-1">
           <div className="flex items-center justify-center mb-4">
-            <Shield className="h-12 w-12 text-green-400" />
+            <Shield className="h-12 w-12 text-yellow-400" />
           </div>
           <CardTitle className="text-2xl font-bold text-center text-gray-100">
             {hasAdmin ? "Admin Login" : "Create Admin Account"}
@@ -224,7 +224,7 @@ export default function AdminAuth({ onAuthenticated }: AdminAuthProps) {
 
             <Button
               type="submit"
-              className="w-full bg-green-600 hover:bg-green-700 text-white"
+              className="w-full bg-yellow-400 hover:bg-yellow-500 text-black"
               disabled={isSubmitting}
             >
               {isSubmitting ? "Processing..." : hasAdmin ? "Login" : "Create Admin Account"}

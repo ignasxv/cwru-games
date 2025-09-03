@@ -222,6 +222,7 @@ export default function RankingsPage() {
                   </TableHeader>
                   <TableBody>
                     {gameRankings.map((game, index) => (
+                      
                       <TableRow key={game.gameId} className="border-gray-700">
                         <TableCell>
                           <div>
