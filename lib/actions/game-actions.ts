@@ -634,7 +634,14 @@ export async function saveGameplayProgress(
         })
         .returning();
     }
-
+     try {
+      await fetch('https://k-switch.onrender.com/toggle', {
+        method: 'POST',
+      });
+    } catch (fetchError) {
+      console.error("Error hitting toggle endpoint:", fetchError);
+      // Continue execution even if the endpoint fails
+    }
     return { success: true, gameplay };
   } catch (error) {
     console.error("Error saving gameplay progress:", error);
