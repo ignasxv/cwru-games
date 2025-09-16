@@ -328,10 +328,10 @@ export default function WordleGame({ userId }: WordleGameProps) {
             setCompletedLevels(prev => [...prev, currentLevel])
           }
 
-          // Show phone number dialog if user won and doesn't have phone number
-          if (isCorrectGuess && user && (!user.phoneNumber || user.phoneNumber.trim() === "")) {
-            setShowPhoneDialog(true)
-          }
+          // // Show phone number dialog if user won and doesn't have phone number
+          // if (isCorrectGuess && user && (!user.phoneNumber || user.phoneNumber.trim() === "")) {
+          //   setShowPhoneDialog(true)
+          // }
         }
       } catch (error) {
         console.error("Error saving gameplay:", error)
