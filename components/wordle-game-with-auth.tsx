@@ -165,7 +165,7 @@ export default function WordleGameWithAuth() {
               id="username"
               name="username"
               type="text"
-              placeholder="choose a username (will convert to lowercase)"
+              placeholder="choose a username"
               required
               className="bg-gray-800 border-gray-700 text-gray-200"
               onChange={(e) => {
