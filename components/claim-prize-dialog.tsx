@@ -17,29 +17,29 @@ interface ClaimPrizeDialogProps {
 }
 
 export function ClaimPrizeDialog({ open, onOpenChange, userId, currentUsername }: ClaimPrizeDialogProps) {
-  const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
+  const [igHandle, setIgHandle] = useState("");
+  const [caseId, setCaseId] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!username.trim() || !email.trim()) {
+    if (!igHandle.trim() || !caseId.trim()) {
       toast({
         title: "Missing Information",
-        description: "Please provide both your Case username and email.",
+        description: "Please provide both your Instagram handle and Case ID.",
         variant: "destructive",
       });
       return;
     }
 
-    // Basic email validation
+    // Basic email validation for Case ID
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!emailRegex.test(caseId)) {
       toast({
-        title: "Invalid Email",
-        description: "Please enter a valid email address.",
+        title: "Invalid Case ID",
+        description: "Please enter a valid Case email address (e.g., abc123@case.edu).",
         variant: "destructive",
       });
       return;
@@ -48,12 +48,12 @@ export function ClaimPrizeDialog({ open, onOpenChange, userId, currentUsername }
     setLoading(true);
 
     try {
-      const result = await claimUserProfile(userId, username, email);
+      const result = await claimUserProfile(userId, igHandle, caseId);
 
       if (result.success) {
         toast({
           title: "🎉 Prize Claimed!",
-          description: "Your profile has been updated. Check your email for your prize!",
+          description: "Your info has been submitted. Check your email for your prize details!",
         });
         onOpenChange(false);
         // Reload to refresh user data
@@ -82,39 +82,39 @@ export function ClaimPrizeDialog({ open, onOpenChange, userId, currentUsername }
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-yellow-400 text-xl">
             <Gift className="h-6 w-6" />
-            Claim Your Prize!
+            Claim Your Prize !
           </DialogTitle>
           <DialogDescription className="text-gray-300">
-            🎊 Congratulations on completing {">"}= 3 games! Enter your details below to claim your prize.
+            🎊 Congratulations 🎊  Keep an eye on our stories and your inbox for more details!
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 my-4">
           <div className="space-y-2">
-            <Label htmlFor="username" className="text-gray-200 font-mono">
-              Case Username
+            <Label htmlFor="igHandle" className="text-gray-200 font-mono">
+              Instagram Handle
             </Label>
             <Input
-              id="username"
+              id="igHandle"
               type="text"
-              placeholder="Your Case Western username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              placeholder="yourhandle"
+              value={igHandle}
+              onChange={(e) => setIgHandle(e.target.value)}
               className="bg-gray-700 border-gray-600 text-gray-100 placeholder:text-gray-400 font-mono"
               disabled={loading}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email" className="text-gray-200 font-mono">
-              Email Address
+            <Label htmlFor="caseId" className="text-gray-200 font-mono">
+              Case ID (Email)
             </Label>
             <Input
-              id="email"
+              id="caseId"
               type="email"
-              placeholder="your.email@case.edu"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              placeholder="abc123@case.edu"
+              value={caseId}
+              onChange={(e) => setCaseId(e.target.value)}
               className="bg-gray-700 border-gray-600 text-gray-100 placeholder:text-gray-400 font-mono"
               disabled={loading}
             />
@@ -122,8 +122,8 @@ export function ClaimPrizeDialog({ open, onOpenChange, userId, currentUsername }
 
           <div className="bg-yellow-400/10 border border-yellow-400/30 rounded-lg p-3">
             <p className="text-xs text-gray-300 font-mono">
-              <strong className="text-yellow-400">Note:</strong> Your current anonymous username ({currentUsername}) will be
-              preserved. Your progress and stats remain intact!
+              <strong className="text-yellow-400">Note:</strong> Your current username ({currentUsername}) will be
+              preserved. You will be able to use your case id to stack your progress across any devices!
             </p>
           </div>
         </form>
@@ -147,12 +147,12 @@ export function ClaimPrizeDialog({ open, onOpenChange, userId, currentUsername }
             {loading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Claiming...
+                Submitting...
               </>
             ) : (
               <>
                 <Gift className="h-4 w-4 mr-2" />
-                Claim Prize
+                Submit
               </>
             )}
           </Button>

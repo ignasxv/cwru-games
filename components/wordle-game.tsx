@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { InfoIcon, RotateCcw, Trophy, Share2, ChevronLeft, ChevronRight, Gift } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { getGameForUser, getUserCurrentLevel, getAvailableLevels, getUserCompletedLevels, saveGameplayProgress, updateUserPhoneNumber } from "@/lib/actions/game-actions"
-import GameStats from "@/components/game-stats"
+
 import { useAuth } from "@/lib/auth/AuthContext"
 
 type LetterState = "correct" | "present" | "absent" | "empty"
@@ -639,16 +639,7 @@ export default function WordleGame({ userId, onGameComplete }: WordleGameProps) 
         <div className="space-y-1 mb-4 w-full">{renderKeyboard()}</div>
 
 
-        {/* Game Stats and Rankings */}
-        {userId && (
-          <GameStats 
-            userId={userId}
-            currentGameId={currentGameId}
-            gameStatus={gameState.gameStatus}
-            pointsEarned={currentGamePoints}
-            refreshTrigger={statsRefreshTrigger}
-          />
-        )}
+
         </>
         )}
 

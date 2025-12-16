@@ -122,8 +122,8 @@ export default function RankingsPage() {
                   <TableHead className="w-16 font-mono">Rank</TableHead>
                   <TableHead className="font-mono">Player</TableHead>
                   <TableHead className="text-right font-mono">Total Points</TableHead>
-                  <TableHead className="text-right font-mono">Games Won</TableHead>
-                  <TableHead className="text-right font-mono">Average Score</TableHead>
+                  <TableHead className="text-right font-mono">Games Played</TableHead>
+
                   <TableHead className="text-right font-mono">Best Score</TableHead>
                 </TableRow>
               </TableHeader>
@@ -159,9 +159,7 @@ export default function RankingsPage() {
                     <TableCell className="text-right font-mono text-gray-300">
                       {player.gamesCompleted || 0}
                     </TableCell>
-                    <TableCell className="text-right font-mono text-gray-300">
-                      {player.averageScore && typeof player.averageScore === 'number' ? player.averageScore.toFixed(1) : '0.0'}
-                    </TableCell>
+
                     <TableCell className="text-right font-mono text-gray-300">
                       {player.bestScore || 0}
                     </TableCell>

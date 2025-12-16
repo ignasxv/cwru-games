@@ -178,7 +178,7 @@ export default function GameStats({ userId, currentGameId, gameStatus, pointsEar
                 <div className="text-2xl font-bold text-yellow-400 font-mono">
                   {userStats.gamesCompleted || 0}
                 </div>
-                <div className="text-xs text-gray-400 font-mono">Games Won</div>
+                <div className="text-xs text-gray-400 font-mono">Games Played</div>
               </div>
             </div>
 

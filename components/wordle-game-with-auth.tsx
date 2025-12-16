@@ -10,41 +10,59 @@ import { ClaimPrizeDialog } from "./claim-prize-dialog";
 import { getUserStats } from "@/lib/actions/game-actions";
 
 export default function WordleGameWithAuth() {
-  const { user, isLoading, refreshUser } = useAuth();
+  const { user, isLoading } = useAuth();
   const [showClaimPrize, setShowClaimPrize] = useState(false);
   const [gamesCompleted, setGamesCompleted] = useState(0);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [hasCheckedEligibility, setHasCheckedEligibility] = useState(false);
 
-  // Function to refresh user stats and check eligibility
-  const refreshStatsAndCheckEligibility = useCallback(async () => {
-    if (user && user.id) {
-      // Refresh user data to get latest email status
-      if (refreshUser) {
-        await refreshUser();
-      }
+  // Check eligibility only when needed
+  const checkEligibility = useCallback(async () => {
+    if (!user || !user.id) return;
 
-      // Load user stats to check games completed
-      const result = await getUserStats(user.id);
-      if (result.success && result.stats) {
-        setGamesCompleted(result.stats.gamesCompleted || 0);
-      }
-    }
-  }, [user, refreshUser]);
-
-  // Initial load
-  useEffect(() => {
-    refreshStatsAndCheckEligibility();
-  }, [refreshStatsAndCheckEligibility]);
-
-  // Check eligibility whenever games completed or user changes
-  useEffect(() => {
-    // Show claim prize if user has completed 3+ games and hasn't provided email yet
-    if (gamesCompleted >= 3 && user && !user.email) {
-      setShowClaimPrize(true);
-    } else {
+    // Skip if user already has email (already claimed)
+    if (user.email) {
       setShowClaimPrize(false);
+      setHasCheckedEligibility(true);
+      return;
     }
-  }, [gamesCompleted, user]);
+
+    // Get games completed
+    const result = await getUserStats(user.id);
+    if (result.success && result.stats) {
+      const completed = result.stats.gamesCompleted || 0;
+      setGamesCompleted(completed);
+      
+      // Show button if eligible
+      if (completed >= 3) {
+        setShowClaimPrize(true);
+      }
+    }
+    
+    setHasCheckedEligibility(true);
+  }, [user]);
+
+  // Check on mount
+  useEffect(() => {
+    if (!hasCheckedEligibility) {
+      checkEligibility();
+    }
+  }, [hasCheckedEligibility, checkEligibility]);
+
+  // Handle game completion - only refresh if potentially eligible
+  const handleGameComplete = useCallback(async () => {
+    // Skip if already claimed
+    if (user?.email) return;
+    
+    // Only check if we're close to the threshold or haven't hit it yet
+    if (gamesCompleted >= 2 && gamesCompleted < 3) {
+      // Might hit 3 now, so check
+      await checkEligibility();
+    } else if (gamesCompleted < 3) {
+      // Just increment locally, no need for API call
+      setGamesCompleted(prev => prev + 1);
+    }
+  }, [user, gamesCompleted, checkEligibility]);
 
   if (isLoading) {
     return (
@@ -125,7 +143,7 @@ export default function WordleGameWithAuth() {
       <main className="pt-2">
         <WordleGame 
           userId={user.id} 
-          onGameComplete={refreshStatsAndCheckEligibility}
+          onGameComplete={handleGameComplete}
         />
       </main>
 

@@ -4,13 +4,13 @@ import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
-export async function claimUserProfile(userId: number, username: string, email: string) {
+export async function claimUserProfile(userId: number, igHandle: string, email: string) {
   try {
     // Normalize inputs
     const normalizedEmail = email.toLowerCase().trim();
 
     // Only check if email is already taken by another user
-    // (We don't check username because we're keeping the anonymous username)
+    // (We don't check IG handle because we're keeping the anonymous username)
     const existingEmail = await db
       .select()
       .from(users)
@@ -21,12 +21,12 @@ export async function claimUserProfile(userId: number, username: string, email: 
       return { success: false, message: "Email already taken" };
     }
 
-    // Update user with email and Case username (keep anonymous username)
+    // Update user with email and IG handle (keep anonymous username)
     const [updatedUser] = await db
       .update(users)
       .set({ 
         email: normalizedEmail,
-        fullName: username // Store Case username in fullName
+        fullName: igHandle // Store IG handle in fullName
       })
       .where(eq(users.id, userId))
       .returning();
