@@ -24,9 +24,10 @@ interface GameState {
 
 interface WordleGameProps {
   userId?: number
+  onGameComplete?: () => void
 }
 
-export default function WordleGame({ userId }: WordleGameProps) {
+export default function WordleGame({ userId, onGameComplete }: WordleGameProps) {
   const { user, refreshUser } = useAuth()
   const [gameState, setGameState] = useState<GameState>({
     currentGuess: "",
@@ -328,6 +329,11 @@ export default function WordleGame({ userId }: WordleGameProps) {
             setCompletedLevels(prev => [...prev, currentLevel])
           }
 
+          // Notify parent component that game is complete
+          if (onGameComplete) {
+            onGameComplete();
+          }
+
           // // Show phone number dialog if user won and doesn't have phone number
           // if (isCorrectGuess && user && (!user.phoneNumber || user.phoneNumber.trim() === "")) {
           //   setShowPhoneDialog(true)
@@ -363,16 +369,26 @@ export default function WordleGame({ userId }: WordleGameProps) {
   // Keyboard event listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      const key = e.key.toUpperCase()
-      if (key === "ENTER" || key === "BACKSPACE" || key.match(/[A-Z]/)) {
-        e.preventDefault()
-        handleKeyPress(key)
+      // Ignore if user is typing in an input field or dialog
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.closest('[role="dialog"]')
+      ) {
+        return;
       }
-    }
 
-    window.addEventListener("keydown", handleKeyDown)
-    return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [handleKeyPress])
+      const key = e.key.toUpperCase();
+      if (key === "ENTER" || key === "BACKSPACE" || key.match(/[A-Z]/)) {
+        e.preventDefault();
+        handleKeyPress(key);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyPress]);
 
   const renderGrid = () => {
     if (!targetWord) return null

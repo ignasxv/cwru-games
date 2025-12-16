@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Trophy, Gift } from "lucide-react";
 import WordleGame from "./wordle-game";
@@ -10,22 +10,33 @@ import { ClaimPrizeDialog } from "./claim-prize-dialog";
 import { getUserStats } from "@/lib/actions/game-actions";
 
 export default function WordleGameWithAuth() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, refreshUser } = useAuth();
   const [showClaimPrize, setShowClaimPrize] = useState(false);
   const [gamesCompleted, setGamesCompleted] = useState(0);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  useEffect(() => {
+  // Function to refresh user stats and check eligibility
+  const refreshStatsAndCheckEligibility = useCallback(async () => {
     if (user && user.id) {
-      // Load user stats to check games completed
-      getUserStats(user.id).then((result) => {
-        if (result.success && result.stats) {
-          setGamesCompleted(result.stats.gamesCompleted || 0);
-        }
-      });
-    }
-  }, [user]);
+      // Refresh user data to get latest email status
+      if (refreshUser) {
+        await refreshUser();
+      }
 
+      // Load user stats to check games completed
+      const result = await getUserStats(user.id);
+      if (result.success && result.stats) {
+        setGamesCompleted(result.stats.gamesCompleted || 0);
+      }
+    }
+  }, [user, refreshUser]);
+
+  // Initial load
+  useEffect(() => {
+    refreshStatsAndCheckEligibility();
+  }, [refreshStatsAndCheckEligibility]);
+
+  // Check eligibility whenever games completed or user changes
   useEffect(() => {
     // Show claim prize if user has completed 3+ games and hasn't provided email yet
     if (gamesCompleted >= 3 && user && !user.email) {
@@ -112,7 +123,10 @@ export default function WordleGameWithAuth() {
       </div>
 
       <main className="pt-2">
-        <WordleGame userId={user.id} />
+        <WordleGame 
+          userId={user.id} 
+          onGameComplete={refreshStatsAndCheckEligibility}
+        />
       </main>
 
       {/* Claim Prize Dialog */}

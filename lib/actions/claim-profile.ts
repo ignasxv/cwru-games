@@ -6,21 +6,11 @@ import { eq } from "drizzle-orm";
 
 export async function claimUserProfile(userId: number, username: string, email: string) {
   try {
-    // Normalize username
-    const normalizedUsername = username.toLowerCase().trim();
+    // Normalize inputs
     const normalizedEmail = email.toLowerCase().trim();
 
-    // Check if username or email is already taken by another user
-    const existingUser = await db
-      .select()
-      .from(users)
-      .where(eq(users.username, normalizedUsername))
-      .limit(1);
-
-    if (existingUser.length > 0 && existingUser[0].id !== userId) {
-      return { success: false, message: "Username already taken" };
-    }
-
+    // Only check if email is already taken by another user
+    // (We don't check username because we're keeping the anonymous username)
     const existingEmail = await db
       .select()
       .from(users)
@@ -31,7 +21,7 @@ export async function claimUserProfile(userId: number, username: string, email: 
       return { success: false, message: "Email already taken" };
     }
 
-    // Update user with email (keep anonymous username)
+    // Update user with email and Case username (keep anonymous username)
     const [updatedUser] = await db
       .update(users)
       .set({ 
