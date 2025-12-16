@@ -27,7 +27,7 @@ A Wordle-inspired game built for Case Western Reserve University, featuring user
 
 ### Prerequisites
 
-- Node.js (v18 or later)
+- [Bun](https://bun.sh) (v1.0 or later)
 - PostgreSQL database
 
 ### Installation
@@ -40,7 +40,7 @@ A Wordle-inspired game built for Case Western Reserve University, featuring user
 
 2.  **Install dependencies**
     ```bash
-    npm install
+    bun install
     ```
 
 3.  **Set up environment variables**
@@ -53,25 +53,25 @@ A Wordle-inspired game built for Case Western Reserve University, featuring user
 4.  **Initialize the database**
     Generate migrations and push them to your database:
     ```bash
-    npm run db:generate
-    npm run db:migrate
+    bun db:generate
+    bun db:migrate
     ```
 
 5.  **Run the development server**
     ```bash
-    npm run dev
+    bun dev
     ```
 
     Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
 ## Scripts
 
-- `npm run dev`: Runs the development server.
-- `npm run build`: Builds the application for production.
-- `npm run start`: Starts the production server.
-- `npm run db:generate`: Generates Drizzle migrations based on schema changes.
-- `npm run db:migrate`: Applies migrations to the database.
-- `npm run db:studio`: Opens Drizzle Studio for visual database management.
+- `bun dev`: Runs the development server.
+- `bun build`: Builds the application for production.
+- `bun start`: Starts the production server.
+- `bun db:generate`: Generates Drizzle migrations based on schema changes.
+- `bun db:migrate`: Applies migrations to the database.
+- `bun db:studio`: Opens Drizzle Studio for visual database management.
 
 ## License
 
