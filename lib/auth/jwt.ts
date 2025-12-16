@@ -30,8 +30,8 @@ export function verifyJWT(token: string): JWTPayload | null {
 }
 
 export async function setTokenCookie(token: string) {
-  const cookieStore = cookies();
-  cookieStore.set('auth-token', token, {
+  const cookieStore = await cookies();
+  cookieStore.set('auth-token', token, {  
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',

@@ -1,25 +1,13 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Trophy, LogOut } from "lucide-react"
+import { Trophy } from "lucide-react"
 import WordleGame from "./wordle-game"
-import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/lib/auth/AuthContext"
 import Link from "next/link"
 
 export default function WordleGameWithAuth() {
-  const { user, isLoading, logout } = useAuth()
-  const { toast } = useToast()
-
-  const handleLogout = () => {
-    logout()
-    toast({
-      title: "Session Reset",
-      description: "Your session has been cleared. A new anonymous account will be created on reload.",
-    })
-    // Optional: reload the page to trigger new anonymous user creation immediately
-    window.location.reload()
-  }
+  const { user, isLoading } = useAuth()
 
   if (isLoading) {
     return (
@@ -72,15 +60,7 @@ export default function WordleGameWithAuth() {
             </Button>
           </Link>
           
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={handleLogout}
-            className="text-gray-400 hover:text-red-400 hover:bg-gray-800 h-8 w-8 p-0"
-            title="Reset Session"
-          >
-            <LogOut className="h-4 w-4" />
-          </Button>
+
         </div>
       </div>
       
