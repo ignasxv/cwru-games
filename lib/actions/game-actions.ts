@@ -7,6 +7,7 @@ import { eq, desc, or, and, asc, max, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { signJWT, verifyJWT, getCurrentUserFromToken } from "@/lib/auth/jwt";
 import { uniqueNamesGenerator, adjectives, animals } from 'unique-names-generator';
+import { headers } from "next/headers";
 
 // User actions
 export async function createUser(username: string, password: string, email?: string) {
@@ -42,6 +43,8 @@ export async function createUser(username: string, password: string, email?: str
 }
 
 export async function createAnonymousUser() {
+  const headersList = await headers();
+  const userAgent = headersList.get("user-agent") || "Unknown";
   try {
     // Generate a random name: adjective_animal (e.g., happy_capybara)
     const randomName = uniqueNamesGenerator({
@@ -63,6 +66,7 @@ export async function createAnonymousUser() {
     // Create new user with no password/email
     const [newUser] = await db.insert(users).values({
       username: username,
+      deviceInfo: [userAgent],
       // email, password, phoneNumber are null
     }).returning();
 

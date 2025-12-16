@@ -1,5 +1,6 @@
+
 import { sql } from "drizzle-orm";
-import { text, integer, pgTable, boolean, timestamp, serial } from "drizzle-orm/pg-core";
+import { text, integer, pgTable, boolean, timestamp, serial, json } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -8,6 +9,7 @@ export const users = pgTable("users", {
   email: text("email").unique(),
   password: text("password"),
   phoneNumber: text("phone_number"),
+  deviceInfo: json("last_device_info").$type<string[]>().default([]),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
