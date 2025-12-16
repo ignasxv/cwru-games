@@ -6,6 +6,8 @@ import { users, games, gameplays, gameStats, admins, type NewUser, type NewGame,
 import { eq, desc, or, and, asc, max, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { signJWT, verifyJWT, getCurrentUserFromToken } from "@/lib/auth/jwt";
+import { uniqueNamesGenerator, adjectives, animals } from 'unique-names-generator';
+import { headers } from "next/headers";
 
 // User actions
 export async function createUser(username: string, password: string, email?: string) {
@@ -37,6 +39,58 @@ export async function createUser(username: string, password: string, email?: str
   } catch (error) {
     console.error("Error creating user:", error)
     return { success: false, message: "Failed to create user" }
+  }
+}
+
+export async function createAnonymousUser() {
+  const headersList = await headers();
+  const userAgent = headersList.get("user-agent") || "Unknown";
+  try {
+    // Generate a random name: adjective_animal (e.g., happy_capybara)
+    const randomName = uniqueNamesGenerator({
+      dictionaries: [adjectives, animals],
+      separator: '_',
+      length: 2
+    });
+
+    // Ensure uniqueness
+    let username = randomName;
+    let retries = 0;
+    while (retries < 5) {
+      const existing = await db.select().from(users).where(eq(users.username, username)).limit(1);
+      if (existing.length === 0) break;
+      username = `${randomName}_${Math.floor(Math.random() * 1000)}`;
+      retries++;
+    }
+
+    // Create new user with no password/email
+    const [newUser] = await db.insert(users).values({
+      username: username,
+      deviceInfo: [userAgent],
+      // email, password, phoneNumber are null
+    }).returning();
+
+    // Initialize game stats
+    await db.insert(gameStats).values({
+      userId: newUser.id,
+      gamesPlayed: 0,
+      gamesWon: 0,
+      currentStreak: 0,
+      maxStreak: 0,
+      guessDistribution: "{}"
+    });
+
+    // Generate JWT
+    const token = signJWT({
+      userId: newUser.id,
+      username: newUser.username,
+      type: 'user'
+    });
+
+    return { success: true, user: newUser, token };
+  } catch (error) {
+    console.error("Error creating anonymous user:", error);
+    return { success: false, message: "Failed to create anonymous user" };
   }
 }
 
@@ -762,9 +816,9 @@ export async function getGameRankings(gameId: number, limit: number = 10) {
   }
 }
 
-export async function getOverallRankings(limit: number = 20) {
+export async function getOverallRankings(limit?: number) {
   try {
-    const rankings = await db
+    let query = db
       .select({
         userId: gameplays.userId,
         username: users.username,
@@ -778,9 +832,15 @@ export async function getOverallRankings(limit: number = 20) {
       .innerJoin(users, eq(gameplays.userId, users.id))
       .where(eq(gameplays.completed, true))
       .groupBy(gameplays.userId, users.username, users.fullName)
-      .orderBy(desc(sql`sum(${gameplays.pointsEarned})`), desc(sql`count(case when ${gameplays.completed} = true then 1 end)`))
-      .limit(limit);
+      .orderBy(desc(sql`sum(${gameplays.pointsEarned})`), desc(sql`count(case when ${gameplays.completed} = true then 1 end)`));
 
+    if (limit) {
+      // @ts-ignore - offset/limit dynamic application
+      const results = await query.limit(limit);
+      return { success: true, rankings: results };
+    }
+
+    const rankings = await query;
     return { success: true, rankings };
   } catch (error) {
     console.error("Error getting overall rankings:", error);

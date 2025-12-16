@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { AuthUser, AuthState, getAuthFromStorage, saveAuthToStorage, clearAuthFromStorage, isTokenExpired } from '@/lib/auth/client';
-import { verifyToken } from '@/lib/actions/game-actions';
+import { verifyToken, createAnonymousUser } from '@/lib/actions/game-actions';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -30,28 +30,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const authState = getAuthFromStorage();
       
-      if (!authState.token || !authState.user) {
-        setIsLoading(false);
-        return;
+      let currentUser = null;
+      let currentToken = null;
+
+      if (authState.token && authState.user && !isTokenExpired(authState.token)) {
+        // Verify token with server
+        const verification = await verifyToken(authState.token);
+        if (verification.success && verification.user) {
+          currentUser = verification.user;
+          currentToken = authState.token;
+        }
       }
 
-      // Check if token is expired
-      if (isTokenExpired(authState.token)) {
-        clearAuthFromStorage();
-        setIsLoading(false);
-        return;
+      if (!currentUser || !currentToken) {
+        // No valid session, create anonymous user
+        clearAuthFromStorage(); // Clear any potential garbage
+        const result = await createAnonymousUser();
+         if (result.success && result.user && result.token) {
+          currentUser = result.user;
+          currentToken = result.token;
+          saveAuthToStorage(currentToken, currentUser);
+        }
       }
 
-      // Verify token with server
-      const verification = await verifyToken(authState.token);
+      if (currentUser && currentToken) {
+        setUser(currentUser);
+        setToken(currentToken);
+      }
       
-      if (verification.success && verification.user) {
-        setUser(verification.user);
-        setToken(authState.token);
-      } else {
-        // Token is invalid, clear storage
-        clearAuthFromStorage();
-      }
     } catch (error) {
       console.error('Error initializing auth:', error);
       clearAuthFromStorage();
