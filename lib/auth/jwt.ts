@@ -41,13 +41,13 @@ export async function setTokenCookie(token: string) {
 }
 
 export async function getTokenFromCookie(): Promise<string | null> {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const tokenCookie = cookieStore.get('auth-token');
   return tokenCookie?.value || null;
 }
 
 export async function removeTokenCookie() {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   cookieStore.delete('auth-token');
 }
 
