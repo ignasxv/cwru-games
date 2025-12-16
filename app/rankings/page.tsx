@@ -5,9 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trophy, Medal, Award, Crown, Star, TrendingUp, ArrowLeft, Users, Target } from "lucide-react";
-import { getOverallRankings, getGameRankingsWithoutWord } from "@/lib/actions/game-actions";
+import { Trophy, Medal, Award, Crown, Star, TrendingUp, ArrowLeft } from "lucide-react";
+import { getOverallRankings } from "@/lib/actions/game-actions";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth/AuthContext";
 
@@ -21,20 +20,9 @@ interface OverallRanking {
   bestScore: number;
 }
 
-interface GameRankingWithoutWord {
-  gameId: number;
-  hint: string | null;
-  createdAt: Date | string | null;
-  topScore: number;
-  averageScore: number;
-  totalPlayers: number;
-  completions: number;
-}
-
 export default function RankingsPage() {
   const { user } = useAuth();
   const [overallRankings, setOverallRankings] = useState<OverallRanking[]>([]);
-  const [gameRankings, setGameRankings] = useState<GameRankingWithoutWord[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -48,12 +36,6 @@ export default function RankingsPage() {
       const overallResult = await getOverallRankings();
       if (overallResult.success) {
         setOverallRankings(overallResult.rankings);
-      }
-
-      // Load game performance rankings
-      const gamesResult = await getGameRankingsWithoutWord(20);
-      if (gamesResult.success) {
-        setGameRankings(gamesResult.rankings);
       }
     } catch (error) {
       console.error("Error loading rankings:", error);
@@ -123,159 +105,79 @@ export default function RankingsPage() {
           </p>
         </div>
 
-        <Tabs defaultValue="overall" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6 bg-gray-800 font-mono">
-            <TabsTrigger value="overall" className="font-mono">Overall Rankings</TabsTrigger>
-            <TabsTrigger value="games" className="font-mono">Game Performance</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overall">
-            <Card className="bg-gray-800 border-gray-700">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-yellow-400 font-mono">
-                  <Star className="h-5 w-5" />
-                  Overall Leaderboard
-                </CardTitle>
-                <CardDescription className="text-gray-400 font-mono">
-                  Top players ranked by total points earned across all games
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-gray-700">
-                      <TableHead className="w-16 font-mono">Rank</TableHead>
-                      <TableHead className="font-mono">Player</TableHead>
-                      <TableHead className="text-right font-mono">Total Points</TableHead>
-                      <TableHead className="text-right font-mono">Games Won</TableHead>
-                      <TableHead className="text-right font-mono">Average Score</TableHead>
-                      <TableHead className="text-right font-mono">Best Score</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {overallRankings.map((player, index) => {
-                      const isCurrentUser = user && player.userId === user.id;
-                      return (
-                      <TableRow 
-                        key={player.userId || `player-${index}`} 
-                        className={`border-gray-700 ${isCurrentUser ? 'bg-yellow-400/10 border-yellow-400/50 hover:bg-yellow-400/20' : ''}`}
-                      >
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            {getRankIcon(index + 1)}
-                            <Badge variant="outline" className={`font-mono ${getRankBadgeColor(index + 1)}`}>
-                              #{index + 1}
-                            </Badge>
+        <Card className="bg-gray-800 border-gray-700">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-yellow-400 font-mono">
+              <Star className="h-5 w-5" />
+              Overall Leaderboard
+            </CardTitle>
+            <CardDescription className="text-gray-400 font-mono">
+              Top players ranked by total points earned across all games
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow className="border-gray-700">
+                  <TableHead className="w-16 font-mono">Rank</TableHead>
+                  <TableHead className="font-mono">Player</TableHead>
+                  <TableHead className="text-right font-mono">Total Points</TableHead>
+                  <TableHead className="text-right font-mono">Games Won</TableHead>
+                  <TableHead className="text-right font-mono">Average Score</TableHead>
+                  <TableHead className="text-right font-mono">Best Score</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {overallRankings.map((player, index) => {
+                  const isCurrentUser = user && player.userId === user.id;
+                  return (
+                  <TableRow 
+                    key={player.userId || `player-${index}`} 
+                    className={`border-gray-700 ${isCurrentUser ? 'bg-yellow-400/10 border-yellow-400/50 hover:bg-yellow-400/20' : ''}`}
+                  >
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {getRankIcon(index + 1)}
+                        <Badge variant="outline" className={`font-mono ${getRankBadgeColor(index + 1)}`}>
+                          #{index + 1}
+                        </Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium font-mono text-yellow-400">{player.username}</div>
+                        {player.fullName && (
+                          <div className="text-sm text-gray-400 font-mono">
+                            {player.fullName}
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium font-mono text-yellow-400">{player.username}</div>
-                            {player.fullName && (
-                              <div className="text-sm text-gray-400 font-mono">
-                                {player.fullName}
-                              </div>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right font-bold font-mono text-yellow-400">
-                          {player.totalPoints?.toLocaleString() || 0}
-                        </TableCell>
-                        <TableCell className="text-right font-mono text-gray-300">
-                          {player.gamesCompleted || 0}
-                        </TableCell>
-                        <TableCell className="text-right font-mono text-gray-300">
-                          {player.averageScore && typeof player.averageScore === 'number' ? player.averageScore.toFixed(1) : '0.0'}
-                        </TableCell>
-                        <TableCell className="text-right font-mono text-gray-300">
-                          {player.bestScore || 0}
-                        </TableCell>
-                      </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right font-bold font-mono text-yellow-400">
+                      {player.totalPoints?.toLocaleString() || 0}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-gray-300">
+                      {player.gamesCompleted || 0}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-gray-300">
+                      {player.averageScore && typeof player.averageScore === 'number' ? player.averageScore.toFixed(1) : '0.0'}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-gray-300">
+                      {player.bestScore || 0}
+                    </TableCell>
+                  </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
 
-                {overallRankings.length === 0 && (
-                  <div className="text-center py-8 text-gray-400 font-mono">
-                    No rankings available yet
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="games">
-            <Card className="bg-gray-800 border-gray-700">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-yellow-400 font-mono">
-                  <Target className="h-5 w-5" />
-                  Game Performance
-                </CardTitle>
-                <CardDescription className="text-gray-400 font-mono">
-                  Individual game statistics and performance metrics
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-gray-700">
-                      <TableHead className="font-mono">Game</TableHead>
-                      <TableHead className="text-right font-mono">Top Score</TableHead>
-                      <TableHead className="text-right font-mono">Average Score</TableHead>
-                      <TableHead className="text-right font-mono">Players</TableHead>
-                      <TableHead className="text-right font-mono">Completed</TableHead>
-                      <TableHead className="text-right font-mono">Date Added</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {gameRankings.map((game, index) => (
-                      
-                      <TableRow key={game.gameId} className="border-gray-700">
-                        <TableCell>
-                          <div>
-                            <div className="font-medium font-mono text-yellow-400">
-                              Game #{game.gameId}
-                            </div>
-                            {game.hint && (
-                              <div className="text-sm text-gray-400 font-mono">
-                                Hint: {game.hint}
-                              </div>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right font-bold font-mono text-yellow-400">
-                          {game.topScore || 0}
-                        </TableCell>
-                        <TableCell className="text-right font-mono text-gray-300">
-                          {game.averageScore && typeof game.averageScore === 'number' ? game.averageScore.toFixed(1) : '0.0'}
-                        </TableCell>
-                        <TableCell className="text-right font-mono text-gray-300">
-                          <div className="flex items-center justify-end gap-1">
-                            <Users className="h-3 w-3" />
-                            {game.totalPlayers || 0}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right font-mono text-gray-300">
-                          {game.completions || 0}
-                        </TableCell>
-                        <TableCell className="text-right font-mono text-gray-400">
-                          {game.createdAt ? new Date(game.createdAt).toLocaleDateString() : 'N/A'}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-
-                {gameRankings.length === 0 && (
-                  <div className="text-center py-8 text-gray-400 font-mono">
-                    No games available yet
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+            {overallRankings.length === 0 && (
+              <div className="text-center py-8 text-gray-400 font-mono">
+                No rankings available yet
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
