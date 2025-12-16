@@ -812,9 +812,9 @@ export async function getGameRankings(gameId: number, limit: number = 10) {
   }
 }
 
-export async function getOverallRankings(limit: number = 20) {
+export async function getOverallRankings(limit?: number) {
   try {
-    const rankings = await db
+    let query = db
       .select({
         userId: gameplays.userId,
         username: users.username,
@@ -828,9 +828,15 @@ export async function getOverallRankings(limit: number = 20) {
       .innerJoin(users, eq(gameplays.userId, users.id))
       .where(eq(gameplays.completed, true))
       .groupBy(gameplays.userId, users.username, users.fullName)
-      .orderBy(desc(sql`sum(${gameplays.pointsEarned})`), desc(sql`count(case when ${gameplays.completed} = true then 1 end)`))
-      .limit(limit);
+      .orderBy(desc(sql`sum(${gameplays.pointsEarned})`), desc(sql`count(case when ${gameplays.completed} = true then 1 end)`));
 
+    if (limit) {
+      // @ts-ignore - offset/limit dynamic application
+      const results = await query.limit(limit);
+      return { success: true, rankings: results };
+    }
+
+    const rankings = await query;
     return { success: true, rankings };
   } catch (error) {
     console.error("Error getting overall rankings:", error);

@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Trophy, Medal, Award, Crown, Star, TrendingUp, ArrowLeft, Users, Target } from "lucide-react";
 import { getOverallRankings, getGameRankingsWithoutWord } from "@/lib/actions/game-actions";
 import Link from "next/link";
+import { useAuth } from "@/lib/auth/AuthContext";
 
 interface OverallRanking {
   userId: number | null;
@@ -31,6 +32,7 @@ interface GameRankingWithoutWord {
 }
 
 export default function RankingsPage() {
+  const { user } = useAuth();
   const [overallRankings, setOverallRankings] = useState<OverallRanking[]>([]);
   const [gameRankings, setGameRankings] = useState<GameRankingWithoutWord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,8 +44,8 @@ export default function RankingsPage() {
   const loadRankingsData = async () => {
     setLoading(true);
     try {
-      // Load overall rankings
-      const overallResult = await getOverallRankings(20);
+      // Load overall rankings - unlimited
+      const overallResult = await getOverallRankings();
       if (overallResult.success) {
         setOverallRankings(overallResult.rankings);
       }
@@ -151,8 +153,13 @@ export default function RankingsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {overallRankings.map((player, index) => (
-                      <TableRow key={player.userId || `player-${index}`} className="border-gray-700">
+                    {overallRankings.map((player, index) => {
+                      const isCurrentUser = user && player.userId === user.id;
+                      return (
+                      <TableRow 
+                        key={player.userId || `player-${index}`} 
+                        className={`border-gray-700 ${isCurrentUser ? 'bg-yellow-400/10 border-yellow-400/50 hover:bg-yellow-400/20' : ''}`}
+                      >
                         <TableCell>
                           <div className="flex items-center gap-2">
                             {getRankIcon(index + 1)}
@@ -184,7 +191,8 @@ export default function RankingsPage() {
                           {player.bestScore || 0}
                         </TableCell>
                       </TableRow>
-                    ))}
+                      );
+                    })}
                   </TableBody>
                 </Table>
 
