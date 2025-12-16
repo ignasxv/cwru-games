@@ -1,30 +1,78 @@
-# Case Western game
+# CWRU Wordle Game
 
-*Automatically synced with your [v0.app](https://v0.app) deployments*
+A Wordle-inspired game built for Case Western Reserve University, featuring user accounts, statistics tracking, and global leaderboards.
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/ignasxv-projects/v0-case-western-game)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.app-black?style=for-the-badge)](https://v0.app/chat/projects/OxvQ2SPQHFd)
+![Project Status](https://img.shields.io/badge/status-active-success.svg)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
-## Overview
+## Features
 
-This repository will stay in sync with your deployed chats on [v0.app](https://v0.app).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.app](https://v0.app).
+- **Classic Wordle Gameplay**: Guess the 5-letter word in 6 tries with color-coded feedback.
+- **User Accounts**: Sign up and login to save your progress across devices.
+- **Detailed Statistics**: Track your games played, win rate, current streak, max streak, and guess distribution.
+- **Global Leaderboard**: See how you stack up against other players in the rankings.
+- **Admin Dashboard**: Administrators can manage the daily words and game settings.
+- **Responsive Design**: Fully optimized for both desktop and mobile play.
 
-## Deployment
+## Tech Stack
 
-Your project is live at:
+- **Framework**: [Next.js 15](https://nextjs.org/) (App Router)
+- **Language**: [TypeScript](https://www.typescriptlang.org/)
+- **Database**: [PostgreSQL](https://www.postgresql.org/)
+- **ORM**: [Drizzle ORM](https://orm.drizzle.team/)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/) & [Shadcn UI](https://ui.shadcn.com/)
+- **Authentication**: JWT-based custom auth
 
-**[https://vercel.com/ignasxv-projects/v0-case-western-game](https://vercel.com/ignasxv-projects/v0-case-western-game)**
+## Getting Started
 
-## Build your app
+### Prerequisites
 
-Continue building your app on:
+- Node.js (v18 or later)
+- PostgreSQL database
 
-**[https://v0.app/chat/projects/OxvQ2SPQHFd](https://v0.app/chat/projects/OxvQ2SPQHFd)**
+### Installation
 
-## How It Works
+1.  **Clone the repository**
+    ```bash
+    git clone https://github.com/ignasxv/cwru-games.git
+    cd cwru-games
+    ```
 
-1. Create and modify your project using [v0.app](https://v0.app)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
+2.  **Install dependencies**
+    ```bash
+    npm install
+    ```
+
+3.  **Set up environment variables**
+    Create a `.env` file in the root directory. You can use a `.env.example` as a reference if available, or ensure you have the following variables (example):
+    ```env
+    DATABASE_URL=postgresql://user:password@localhost:5432/cwru_games
+    JWT_SECRET=your_super_secret_jwt_key
+    ```
+
+4.  **Initialize the database**
+    Generate migrations and push them to your database:
+    ```bash
+    npm run db:generate
+    npm run db:migrate
+    ```
+
+5.  **Run the development server**
+    ```bash
+    npm run dev
+    ```
+
+    Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+## Scripts
+
+- `npm run dev`: Runs the development server.
+- `npm run build`: Builds the application for production.
+- `npm run start`: Starts the production server.
+- `npm run db:generate`: Generates Drizzle migrations based on schema changes.
+- `npm run db:migrate`: Applies migrations to the database.
+- `npm run db:studio`: Opens Drizzle Studio for visual database management.
+
+## License
+
+This project is licensed under the MIT License.
